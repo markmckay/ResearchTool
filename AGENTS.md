@@ -7,6 +7,7 @@ Keep this repo lightweight. Prefer direct, narrow changes over process-heavy coo
 - The active app lives in `code/literatureSearch`.
 - Treat the repository root as a wrapper directory for the app, helper scripts, and archives.
 - Ignore `archive/` unless the user explicitly asks for it.
+- Do not go outside `/Users/mark/Dev/ResearchTool` unless the user explicitly approves it for that task.
 
 ## Working style
 
