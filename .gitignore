@@ -2,9 +2,12 @@
 
 # Codex workspace metadata and transient files
 .codex/tmp/
+.playwright-cli/
 
 # Next.js app artifacts
 code/literatureSearch/.next/
 code/literatureSearch/node_modules/
 code/literatureSearch/.env.local
 code/literatureSearch/*.tsbuildinfo
+code/literatureSearch/test-results/
+code/literatureSearch/playwright-report/

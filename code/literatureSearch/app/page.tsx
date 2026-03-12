@@ -26,9 +26,8 @@ export default function Home() {
   const [summaryNotConfigured, setSummaryNotConfigured] = useState(false);
 
   const { bookmarks, addBookmark, removeBookmark, isBookmarked } = useBookmarks();
-  const { speak, stop, speaking } = useSpeech();
-  const resultsRef = useRef<HTMLDivElement>(null);
-  const statusRef = useRef<HTMLDivElement>(null);
+  const { speak, stop, speaking, toggleSpeak, isSpeakingKey } = useSpeech();
+  const firstResultTitleRef = useRef<HTMLButtonElement>(null);
 
   const handleSearch = async (query: string) => {
     setLoading(true);
@@ -39,21 +38,34 @@ export default function Home() {
 
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-      if (!res.ok) throw new Error("Search failed");
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error ?? `Search failed with status ${res.status}.`);
+      }
       setResults(data.results ?? []);
       setActiveSources(data.sources ?? {});
-      setTimeout(() => resultsRef.current?.focus(), 100);
-    } catch {
-      setError("Search failed. Please check your connection and try again.");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Search failed. Please check your connection and try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleReadAloud = (paper: Paper) => {
-    speak(
-      `${paper.title}. By ${paper.authors}. ${paper.year ?? ""}. ${paper.abstract}`
+    toggleSpeak(
+      `${paper.title}. By ${paper.authors}. ${paper.year ?? ""}. ${paper.abstract}`,
+      `abstract:${paper.id}`
+    );
+  };
+
+  const handleReadTitle = (paper: Paper) => {
+    toggleSpeak(
+      `${paper.title}. By ${paper.authors}. ${paper.year ?? "Year unknown"}. ${paper.citations} citations.`,
+      `title:${paper.id}`
     );
   };
 
@@ -65,7 +77,7 @@ export default function Home() {
           `Result ${i + 1}: ${p.title}. By ${p.authors}. ${p.year ?? ""}. ${p.citations} citations.`
       )
       .join(" ");
-    speak(text);
+    toggleSpeak(text, "top5");
   };
 
   const handleSummarize = async (paper: Paper) => {
@@ -115,7 +127,6 @@ export default function Home() {
 
       {/* Live region */}
       <div
-        ref={statusRef}
         role="status"
         aria-live="polite"
         aria-atomic="true"
@@ -123,8 +134,10 @@ export default function Home() {
       >
         {loading
           ? "Searching…"
+          : searched && results.length > 0
+          ? `${results.length} results found. Use headings to move through titles, or activate a title to hear a citation preview.`
           : searched
-          ? `${results.length} results found`
+          ? "No results found."
           : ""}
       </div>
 
@@ -166,8 +179,6 @@ export default function Home() {
         {/* Results */}
         <section
           id="results"
-          ref={resultsRef}
-          tabIndex={-1}
           aria-label="Search results"
           className="outline-none"
         >
@@ -226,28 +237,50 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-                <button
-                  onClick={handleReadTop5}
-                  aria-label="Read titles of top 5 results aloud"
-                  className="flex items-center gap-1.5 text-xs text-accent border border-accent/20 hover:bg-accent/10 rounded-lg px-3 py-1.5 transition-all"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  Read top 5 titles
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => firstResultTitleRef.current?.focus()}
+                    aria-label="Move keyboard focus to the first result title"
+                    className="text-xs text-subtle border border-white/10 hover:border-white/20 hover:text-foreground rounded-lg px-3 py-1.5 transition-all"
+                  >
+                    Jump to first title
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleReadTop5}
+                    aria-label={
+                      isSpeakingKey("top5")
+                        ? "Stop reading titles of top 5 results aloud"
+                        : "Read titles of top 5 results aloud"
+                    }
+                    className="flex items-center gap-1.5 text-xs text-accent border border-accent/20 hover:bg-accent/10 rounded-lg px-3 py-1.5 transition-all"
+                  >
+                    {isSpeakingKey("top5") ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    {isSpeakingKey("top5") ? "Stop top 5" : "Read top 5 titles"}
+                  </button>
+                </div>
               </div>
 
-              {results.map((paper, i) => (
-                <PaperCard
-                  key={paper.id}
-                  paper={paper}
-                  index={i}
-                  isBookmarked={isBookmarked(paper.id)}
-                  onBookmark={addBookmark}
-                  onRemoveBookmark={removeBookmark}
-                  onReadAloud={handleReadAloud}
-                  onSummarize={handleSummarize}
-                />
-              ))}
+              <ol className="space-y-4" aria-label="Paper results">
+                {results.map((paper, i) => (
+                  <li key={paper.id}>
+                    <PaperCard
+                      ref={i === 0 ? firstResultTitleRef : undefined}
+                      paper={paper}
+                      index={i}
+                      isBookmarked={isBookmarked(paper.id)}
+                      onBookmark={addBookmark}
+                      onRemoveBookmark={removeBookmark}
+                      onReadTitle={handleReadTitle}
+                      onReadAloud={handleReadAloud}
+                      onSummarize={handleSummarize}
+                      titleSpeaking={isSpeakingKey(`title:${paper.id}`)}
+                      abstractSpeaking={isSpeakingKey(`abstract:${paper.id}`)}
+                    />
+                  </li>
+                ))}
+              </ol>
             </>
           )}
         </section>

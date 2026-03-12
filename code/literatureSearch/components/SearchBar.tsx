@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 
 const QUICK_SEARCHES = [
   "authorial control AI writing",
@@ -19,17 +19,13 @@ export function SearchBar({ onSearch, loading }: Props) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
   const handleSubmit = () => {
     if (query.trim()) onSearch(query.trim());
   };
 
   const handleQuick = (q: string) => {
     setQuery(q);
-    onSearch(q);
+    inputRef.current?.focus();
   };
 
   return (
@@ -55,6 +51,7 @@ export function SearchBar({ onSearch, loading }: Props) {
           className="flex-1 bg-white/5 border border-white/10 rounded-xl px-5 py-3.5 text-foreground text-base placeholder:text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
         />
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={loading || !query.trim()}
           aria-label="Search for papers"
@@ -65,7 +62,7 @@ export function SearchBar({ onSearch, loading }: Props) {
       </div>
 
       <p id="search-hint" className="text-xs text-muted mt-2">
-        Press Enter to search · Results sorted by citation count · Open access PDFs linked where available
+        Press Enter to search · Quick searches fill the box only · Results sorted by citation count
       </p>
 
       <div className="mt-5">
@@ -75,6 +72,7 @@ export function SearchBar({ onSearch, loading }: Props) {
         <div className="flex flex-wrap gap-2" role="list" aria-label="Quick search suggestions">
           {QUICK_SEARCHES.map((qs) => (
             <button
+              type="button"
               key={qs}
               role="listitem"
               onClick={() => handleQuick(qs)}

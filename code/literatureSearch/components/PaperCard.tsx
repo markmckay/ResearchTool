@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { Bookmark, BookmarkCheck, Volume2, ExternalLink, FileText, Sparkles } from "lucide-react";
+import { forwardRef, useState } from "react";
+import { Bookmark, BookmarkCheck, Volume2, VolumeX, ExternalLink, FileText, Sparkles } from "lucide-react";
 import type { Paper } from "@/types/paper";
 
 interface Props {
@@ -9,34 +9,64 @@ interface Props {
   isBookmarked: boolean;
   onBookmark: (paper: Paper) => void;
   onRemoveBookmark: (id: string) => void;
+  onReadTitle: (paper: Paper) => void;
   onReadAloud: (paper: Paper) => void;
   onSummarize: (paper: Paper) => void;
+  titleSpeaking: boolean;
+  abstractSpeaking: boolean;
 }
 
-export function PaperCard({
+export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard({
   paper,
   index,
   isBookmarked,
   onBookmark,
   onRemoveBookmark,
+  onReadTitle,
   onReadAloud,
   onSummarize,
-}: Props) {
+  titleSpeaking,
+  abstractSpeaking,
+}, titleButtonRef) {
   const [expanded, setExpanded] = useState(false);
+  const titleId = `paper-title-${index}`;
+  const metaId = `paper-meta-${index}`;
 
   return (
     <article
-      aria-label={`Result ${index + 1}: ${paper.title}`}
-      className="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-accent/30 rounded-2xl p-6 mb-4 transition-all"
+      aria-labelledby={titleId}
+      className="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-accent/30 focus-within:border-accent/40 rounded-2xl p-6 transition-all"
     >
       {/* Title + bookmark */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h3 className="font-serif text-lg font-bold text-foreground leading-snug mb-2">
-            <span className="text-muted mr-2">{index + 1}.</span>
-            {paper.title}
-          </h3>
-          <p className="text-subtle text-sm mb-3">
+          <div className="flex items-start gap-2 mb-2">
+            <h3 id={titleId} className="font-serif text-lg font-bold text-foreground leading-snug flex-1">
+              <button
+                ref={titleButtonRef}
+                type="button"
+                onClick={() => onReadTitle(paper)}
+                aria-describedby={metaId}
+                className="text-left hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 rounded-md transition-colors"
+              >
+                <span className="text-muted mr-2">{index + 1}.</span>
+                {paper.title}
+              </button>
+            </h3>
+            <button
+              type="button"
+              onClick={() => onReadTitle(paper)}
+              aria-label={
+                titleSpeaking
+                  ? `Stop title preview for ${paper.title}`
+                  : `Speak title and citation details for ${paper.title}`
+              }
+              className="text-accent hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 rounded-lg p-1.5 shrink-0 transition-all"
+            >
+              {titleSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+          </div>
+          <p id={metaId} className="text-subtle text-sm mb-3">
             {paper.authors}
             {paper.year ? ` · ${paper.year}` : ""}
             {paper.venue ? ` · ${paper.venue}` : ""}
@@ -58,6 +88,7 @@ export function PaperCard({
         </div>
 
         <button
+          type="button"
           onClick={() =>
             isBookmarked ? onRemoveBookmark(paper.id) : onBookmark(paper)
           }
@@ -91,6 +122,7 @@ export function PaperCard({
       {/* Actions */}
       <div className="flex flex-wrap gap-2 mt-2">
         <button
+          type="button"
           onClick={() => setExpanded(!expanded)}
           aria-expanded={expanded}
           className="text-xs text-muted hover:text-foreground border border-white/10 hover:border-white/20 rounded-lg px-3 py-1.5 transition-all"
@@ -99,15 +131,21 @@ export function PaperCard({
         </button>
 
         <button
+          type="button"
           onClick={() => onReadAloud(paper)}
-          aria-label={`Read abstract of ${paper.title} aloud`}
+          aria-label={
+            abstractSpeaking
+              ? `Stop reading abstract of ${paper.title}`
+              : `Read abstract of ${paper.title} aloud`
+          }
           className="flex items-center gap-1.5 text-xs text-accent border border-accent/20 hover:bg-accent/10 rounded-lg px-3 py-1.5 transition-all"
         >
-          <Volume2 className="w-3.5 h-3.5" />
-          Read aloud
+          {abstractSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+          {abstractSpeaking ? "Stop abstract" : "Read abstract"}
         </button>
 
         <button
+          type="button"
           onClick={() => onSummarize(paper)}
           aria-label={`Get plain language summary of ${paper.title}`}
           className="flex items-center gap-1.5 text-xs text-accent-green border border-accent-green/20 hover:bg-accent-green/10 rounded-lg px-3 py-1.5 transition-all"
@@ -144,4 +182,4 @@ export function PaperCard({
       </div>
     </article>
   );
-}
+});

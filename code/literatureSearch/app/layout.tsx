@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Research Literature Search",
   description: "Accessible academic paper search tool — Semantic Scholar + OpenAlex",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
