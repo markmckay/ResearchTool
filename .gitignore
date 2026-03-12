@@ -1,0 +1,10 @@
+.DS_Store
+
+# Codex workspace metadata and transient files
+.codex/tmp/
+
+# Next.js app artifacts
+code/literatureSearch/.next/
+code/literatureSearch/node_modules/
+code/literatureSearch/.env.local
+code/literatureSearch/*.tsbuildinfo
