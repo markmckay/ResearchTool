@@ -7,7 +7,7 @@ HOST="${LITERATURE_SEARCH_HOST:-0.0.0.0}"
 PORT="${LITERATURE_SEARCH_PORT:-3000}"
 URL="http://localhost:$PORT"
 TMP_DIR="$ROOT_DIR/.codex/tmp"
-LOG_FILE="$TMP_DIR/literature-search-dev.log"
+LOG_FILE="$TMP_DIR/literature-search-run.log"
 
 mkdir -p "$TMP_DIR"
 
@@ -41,7 +41,7 @@ fi
 osascript <<APPLESCRIPT >/dev/null
 tell application "Terminal"
   activate
-  do script "cd \"$APP_DIR\"; clear; rm -rf .next; npm run dev -- --hostname \"$HOST\" --port \"$PORT\" 2>&1 | tee \"$LOG_FILE\""
+  do script "cd \"$APP_DIR\"; clear; npm run build && npm run start -- --hostname \"$HOST\" --port \"$PORT\" 2>&1 | tee \"$LOG_FILE\""
 end tell
 APPLESCRIPT
 
