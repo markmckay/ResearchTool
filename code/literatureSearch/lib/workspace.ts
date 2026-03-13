@@ -2,6 +2,13 @@ import type { Paper } from "@/types/paper";
 import type { WorkspacePaper, WorkspaceStatus } from "@/types/workspace";
 
 const DEFAULT_STATUS: WorkspaceStatus = "Inbox";
+const VALID_WORKSPACE_STATUSES = new Set<WorkspaceStatus>([
+  "Inbox",
+  "Maybe",
+  "Priority",
+  "Read",
+  "Excluded",
+]);
 
 export function createWorkspacePaper(paper: Paper): WorkspacePaper {
   const timestamp = new Date().toISOString();
@@ -14,6 +21,10 @@ export function createWorkspacePaper(paper: Paper): WorkspacePaper {
     savedAt: timestamp,
     updatedAt: timestamp,
   };
+}
+
+export function isWorkspaceStatus(value: unknown): value is WorkspaceStatus {
+  return typeof value === "string" && VALID_WORKSPACE_STATUSES.has(value as WorkspaceStatus);
 }
 
 export function migrateWorkspacePaper(value: unknown): WorkspacePaper | null {
@@ -43,21 +54,13 @@ export function migrateWorkspacePaper(value: unknown): WorkspacePaper | null {
     doi: typeof candidate.doi === "string" || candidate.doi === null ? candidate.doi : null,
   };
 
-  const maybeWorkspaceStatus = candidate.status;
-  const status: WorkspaceStatus =
-    maybeWorkspaceStatus === "Inbox" ||
-    maybeWorkspaceStatus === "Maybe" ||
-    maybeWorkspaceStatus === "Priority" ||
-    maybeWorkspaceStatus === "Read" ||
-    maybeWorkspaceStatus === "Excluded"
-      ? maybeWorkspaceStatus
-      : DEFAULT_STATUS;
+  const status = isWorkspaceStatus(candidate.status) ? candidate.status : DEFAULT_STATUS;
 
   return {
     ...paper,
     status,
     tags: Array.isArray(candidate.tags)
-      ? candidate.tags.filter((tag): tag is string => typeof tag === "string")
+      ? normalizeTags(candidate.tags.filter((tag): tag is string => typeof tag === "string"))
       : [],
     notes: typeof candidate.notes === "string" ? candidate.notes : "",
     savedAt: typeof candidate.savedAt === "string" ? candidate.savedAt : new Date().toISOString(),

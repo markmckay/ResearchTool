@@ -17,11 +17,15 @@ export function useBookmarks() {
       const parsed = JSON.parse(stored);
       if (!Array.isArray(parsed)) return;
 
-      setBookmarks(
-        parsed
-          .map((item) => migrateWorkspacePaper(item))
-          .filter((item): item is WorkspacePaper => item !== null)
-      );
+      const migrated = parsed
+        .map((item) => migrateWorkspacePaper(item))
+        .filter((item): item is WorkspacePaper => item !== null);
+
+      setBookmarks(migrated);
+
+      if (JSON.stringify(parsed) !== JSON.stringify(migrated)) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      }
     } catch {}
   }, []);
 

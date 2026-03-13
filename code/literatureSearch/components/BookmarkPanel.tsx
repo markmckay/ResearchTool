@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { BookmarkCheck, Search, Volume2, X } from "lucide-react";
 import type { Paper } from "@/types/paper";
+import { isWorkspaceStatus } from "@/lib/workspace";
 import { WORKSPACE_STATUSES } from "@/types/workspace";
 import type { WorkspacePaper, WorkspaceStatus } from "@/types/workspace";
 
@@ -231,9 +232,11 @@ export function BookmarkPanel({
                         <select
                           aria-label={`Set workspace status for ${paper.title}`}
                           value={paper.status}
-                          onChange={(event) =>
-                            onUpdateStatus(paper.id, event.target.value as WorkspaceStatus)
-                          }
+                          onChange={(event) => {
+                            if (isWorkspaceStatus(event.target.value)) {
+                              onUpdateStatus(paper.id, event.target.value);
+                            }
+                          }}
                           className="bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-foreground"
                         >
                           {WORKSPACE_STATUSES.map((status) => (
