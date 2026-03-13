@@ -1,8 +1,9 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Bookmark, Volume2, VolumeX } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
 import { PaperCard } from "@/components/PaperCard";
+import { CompactPaperRow } from "@/components/CompactPaperRow";
 import { BookmarkPanel } from "@/components/BookmarkPanel";
 import { SummaryDialog } from "@/components/SummaryDialog";
 import { useBookmarks } from "@/hooks/useBookmarks";
@@ -12,6 +13,7 @@ import type { Paper } from "@/types/paper";
 
 export default function Home() {
   const [results, setResults] = useState<Paper[]>([]);
+  const [viewMode, setViewMode] = useState<"cards" | "compact">("compact");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
@@ -25,9 +27,16 @@ export default function Home() {
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryNotConfigured, setSummaryNotConfigured] = useState(false);
 
-  const { bookmarks, addBookmark, removeBookmark, isBookmarked } = useBookmarks();
+  const {
+    bookmarks,
+    addBookmark,
+    removeBookmark,
+    isBookmarked,
+    updateBookmarkStatus,
+    updateBookmarkTags,
+    updateBookmarkNotes,
+  } = useBookmarks();
   const { speak, stop, speaking, toggleSpeak, isSpeakingKey } = useSpeech();
-  const firstResultTitleRef = useRef<HTMLButtonElement>(null);
 
   const handleSearch = async (query: string) => {
     setLoading(true);
@@ -153,7 +162,7 @@ export default function Home() {
         </header>
 
         {/* Toolbar */}
-        <div className="flex justify-end gap-3 mb-4">
+        <div className="flex justify-end gap-2 mb-4">
           {speaking && (
             <button
               onClick={stop}
@@ -164,13 +173,23 @@ export default function Home() {
               Stop reading
             </button>
           )}
+          <form action="/api/auth/logout" method="post">
+            <button
+              type="submit"
+              aria-label="Log out of the app"
+              className="flex items-center gap-1.5 text-xs text-subtle border border-white/10 hover:border-white/20 hover:text-foreground rounded-lg px-3 py-1.5 transition-all"
+            >
+              Log out
+            </button>
+          </form>
           <button
             onClick={() => setBookmarkOpen(true)}
             aria-label={`Open saved papers panel. ${bookmarks.length} papers saved.`}
-            className="flex items-center gap-2 text-xs text-subtle border border-white/10 hover:border-accent/30 hover:text-accent rounded-lg px-3 py-1.5 transition-all"
+            title="Saved papers"
+            className="flex items-center gap-1.5 text-xs text-subtle border border-white/10 hover:border-accent/30 hover:text-accent rounded-lg px-2.5 py-1.5 transition-all"
           >
             <Bookmark className="w-3.5 h-3.5" />
-            Saved ({bookmarks.length})
+            <span>{bookmarks.length}</span>
           </button>
         </div>
 
@@ -211,7 +230,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
                 <div>
                   <h2 className="font-serif text-base text-subtle mb-2">
-                    {results.length} results · sorted by citations
+                    {results.length} results · sorted by relevance
                   </h2>
                   {/* Source status badges */}
                   <div className="flex flex-wrap gap-1.5" aria-label="Active sources">
@@ -238,14 +257,36 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => firstResultTitleRef.current?.focus()}
-                    aria-label="Move keyboard focus to the first result title"
-                    className="text-xs text-subtle border border-white/10 hover:border-white/20 hover:text-foreground rounded-lg px-3 py-1.5 transition-all"
+                  <div
+                    className="inline-flex rounded-lg border border-white/10 p-1"
+                    role="group"
+                    aria-label="Result layout"
                   >
-                    Jump to first title
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("compact")}
+                      aria-pressed={viewMode === "compact"}
+                      className={`text-xs rounded-md px-3 py-1.5 transition-all ${
+                        viewMode === "compact"
+                          ? "bg-white/10 text-foreground"
+                          : "text-subtle hover:text-foreground"
+                      }`}
+                    >
+                      Compact
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("cards")}
+                      aria-pressed={viewMode === "cards"}
+                      className={`text-xs rounded-md px-3 py-1.5 transition-all ${
+                        viewMode === "cards"
+                          ? "bg-white/10 text-foreground"
+                          : "text-subtle hover:text-foreground"
+                      }`}
+                    >
+                      Cards
+                    </button>
+                  </div>
                   <button
                     type="button"
                     onClick={handleReadTop5}
@@ -257,27 +298,41 @@ export default function Home() {
                     className="flex items-center gap-1.5 text-xs text-accent border border-accent/20 hover:bg-accent/10 rounded-lg px-3 py-1.5 transition-all"
                   >
                     {isSpeakingKey("top5") ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                    {isSpeakingKey("top5") ? "Stop top 5" : "Read top 5 titles"}
+                    {isSpeakingKey("top5") ? "Stop top 5" : "Top 5 titles"}
                   </button>
                 </div>
               </div>
 
-              <ol className="space-y-4" aria-label="Paper results">
+              <ol className={viewMode === "compact" ? "space-y-3" : "space-y-4"} aria-label="Paper results">
                 {results.map((paper, i) => (
                   <li key={paper.id}>
-                    <PaperCard
-                      ref={i === 0 ? firstResultTitleRef : undefined}
-                      paper={paper}
-                      index={i}
-                      isBookmarked={isBookmarked(paper.id)}
-                      onBookmark={addBookmark}
-                      onRemoveBookmark={removeBookmark}
-                      onReadTitle={handleReadTitle}
-                      onReadAloud={handleReadAloud}
-                      onSummarize={handleSummarize}
-                      titleSpeaking={isSpeakingKey(`title:${paper.id}`)}
-                      abstractSpeaking={isSpeakingKey(`abstract:${paper.id}`)}
-                    />
+                    {viewMode === "compact" ? (
+                      <CompactPaperRow
+                        paper={paper}
+                        index={i}
+                        isBookmarked={isBookmarked(paper.id)}
+                        onBookmark={addBookmark}
+                        onRemoveBookmark={removeBookmark}
+                        onReadTitle={handleReadTitle}
+                        onReadAloud={handleReadAloud}
+                        onSummarize={handleSummarize}
+                        titleSpeaking={isSpeakingKey(`title:${paper.id}`)}
+                        abstractSpeaking={isSpeakingKey(`abstract:${paper.id}`)}
+                      />
+                    ) : (
+                      <PaperCard
+                        paper={paper}
+                        index={i}
+                        isBookmarked={isBookmarked(paper.id)}
+                        onBookmark={addBookmark}
+                        onRemoveBookmark={removeBookmark}
+                        onReadTitle={handleReadTitle}
+                        onReadAloud={handleReadAloud}
+                        onSummarize={handleSummarize}
+                        titleSpeaking={isSpeakingKey(`title:${paper.id}`)}
+                        abstractSpeaking={isSpeakingKey(`abstract:${paper.id}`)}
+                      />
+                    )}
                   </li>
                 ))}
               </ol>
@@ -294,6 +349,9 @@ export default function Home() {
         onRemove={removeBookmark}
         onReadAloud={(p) => handleReadAloud(p)}
         onExport={handleExport}
+        onUpdateStatus={updateBookmarkStatus}
+        onUpdateTags={updateBookmarkTags}
+        onUpdateNotes={updateBookmarkNotes}
       />
 
       {/* Summary dialog */}

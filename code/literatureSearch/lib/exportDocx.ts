@@ -1,6 +1,7 @@
 import type { Paper } from "@/types/paper";
+import type { WorkspacePaper } from "@/types/workspace";
 
-export async function exportBookmarksToDocx(papers: Paper[]): Promise<void> {
+export async function exportBookmarksToDocx(papers: Array<Paper | WorkspacePaper>): Promise<void> {
   const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, LevelFormat } =
     await import("docx");
   const { saveAs } = await import("file-saver");
@@ -68,6 +69,36 @@ export async function exportBookmarksToDocx(papers: Paper[]): Promise<void> {
             new TextRun({ text: paper.pdfUrl }),
           ],
           spacing: { after: 80 },
+        })
+      );
+    }
+
+    if ("status" in paper) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: `Status: ${paper.status}`, color: "666666", size: 18 })],
+          spacing: { after: 60 },
+        })
+      );
+    }
+
+    if ("tags" in paper && paper.tags.length > 0) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: `Tags: ${paper.tags.join(", ")}`, color: "666666", size: 18 })],
+          spacing: { after: 60 },
+        })
+      );
+    }
+
+    if ("notes" in paper && paper.notes.trim()) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: "Notes", bold: true })],
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: paper.notes, size: 20 })],
+          spacing: { after: 120 },
         })
       );
     }
