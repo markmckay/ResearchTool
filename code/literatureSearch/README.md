@@ -79,7 +79,7 @@ npm run qc:full
 
 ---
 
-## Deploy to Vercel (free)
+## Deploy to Vercel
 
 1. Push this folder to a GitHub repository
 2. Go to https://vercel.com and sign in with GitHub
@@ -92,7 +92,16 @@ npm run qc:full
    - `OPENROUTER_MODEL` for the summarization model
 5. Click Deploy
 
-Done. Vercel auto-deploys on every push to main.
+For Git auto-deploys, the Vercel project must also have an active GitHub connection for the account/team that owns the project.
+
+For intentional production deploys from this repo, run:
+
+```bash
+cd code/literatureSearch
+npm run deploy:prod
+```
+
+That workflow runs `npm run test:unit`, `npm run build`, deploys to production, stamps the footer badge with the current Git commit SHA, and verifies the live production site shows that build ID.
 
 ---
 

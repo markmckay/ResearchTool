@@ -1,9 +1,12 @@
 import { execSync } from "node:child_process";
 
 function resolveBuildId() {
-  const explicitBuildId = process.env.NEXT_PUBLIC_BUILD_ID;
+  const explicitBuildId =
+    process.env.NEXT_PUBLIC_BUILD_ID ??
+    process.env.BUILD_GIT_COMMIT ??
+    process.env.GITHUB_SHA;
   if (explicitBuildId) {
-    return explicitBuildId;
+    return explicitBuildId.slice(0, 7);
   }
 
   const vercelCommitSha = process.env.VERCEL_GIT_COMMIT_SHA;
@@ -19,7 +22,8 @@ function resolveBuildId() {
 }
 
 function resolveBuildTimestamp() {
-  const explicitBuildTime = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP;
+  const explicitBuildTime =
+    process.env.NEXT_PUBLIC_BUILD_TIMESTAMP ?? process.env.BUILD_TIMESTAMP;
   if (explicitBuildTime) {
     return explicitBuildTime;
   }
