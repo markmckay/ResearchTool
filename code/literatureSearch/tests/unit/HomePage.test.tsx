@@ -109,6 +109,8 @@ const results: Paper[] = [
     authors: "Jane Doe",
     year: 2024,
     abstract: "A study about search workflows.",
+    relevanceScore: undefined,
+    relevanceReason: undefined,
     citations: 18,
     venue: "CHI",
     source: "OpenAlex",
@@ -121,6 +123,8 @@ const results: Paper[] = [
     authors: "John Roe",
     year: 2023,
     abstract: "A study about speech.",
+    relevanceScore: undefined,
+    relevanceReason: undefined,
     citations: 7,
     venue: "ASSETS",
     source: "Semantic Scholar",
@@ -193,7 +197,7 @@ describe("Home page", () => {
     await waitFor(() => {
       expect(screen.getByText("Relevance: 5/5")).toBeInTheDocument();
     });
-    expect(screen.getByText("AI-ranked")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AI-ranked" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("row-paper-1")).toBeInTheDocument();
     expect(screen.getByLabelText(/IEEE: not configured/i)).toBeInTheDocument();
 
@@ -404,7 +408,7 @@ describe("Home page", () => {
     await waitFor(() => {
       expect(screen.getByText("Best match.")).toBeInTheDocument();
     });
-    expect(screen.getByText("AI-ranked")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AI-ranked" })).toHaveAttribute("aria-pressed", "true");
 
     resolveFirstRelevance?.({
       ok: true,
@@ -423,5 +427,56 @@ describe("Home page", () => {
     const rows = screen.getAllByTestId(/row-paper-/);
     expect(rows[0]).toHaveAttribute("data-testid", "row-paper-1");
     expect(screen.getByText("Best match.")).toBeInTheDocument();
+  });
+
+  it("supports switching between AI-ranked and original order and filtering by relevance band", async () => {
+    const user = userEvent.setup();
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          results,
+          sources: {
+            semanticScholar: true,
+            openAlex: true,
+            arxiv: false,
+            ieee: false,
+            ieeeConfigured: false,
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          papers: [
+            { id: "paper-2", score: 5, reason: "Best fit." },
+            { id: "paper-1", score: 2, reason: "Lower priority." },
+          ],
+        }),
+      });
+
+    render(<Home />);
+
+    await user.type(screen.getByRole("searchbox", { name: /enter your research search query/i }), "audio research");
+    await user.click(screen.getByRole("button", { name: /search for papers/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Best fit.")).toBeInTheDocument();
+    });
+
+    let rows = screen.getAllByTestId(/row-paper-/);
+    expect(rows[0]).toHaveAttribute("data-testid", "row-paper-2");
+
+    await user.click(screen.getByRole("button", { name: "Original" }));
+    rows = screen.getAllByTestId(/row-paper-/);
+    expect(rows[0]).toHaveAttribute("data-testid", "row-paper-1");
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /filter results by relevance/i }),
+      "high"
+    );
+    expect(screen.getByText("Speech-Driven Search Interfaces")).toBeInTheDocument();
+    expect(screen.queryByText("Audio-First Research Tools")).not.toBeInTheDocument();
   });
 });

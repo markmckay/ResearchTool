@@ -82,6 +82,30 @@ export async function exportBookmarksToDocx(papers: Array<Paper | WorkspacePaper
       );
     }
 
+    if (paper.relevanceScore && paper.relevanceScore > 0) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `Relevance: ${paper.relevanceScore}/5`,
+              color: "2E7D32",
+              size: 18,
+            }),
+          ],
+          spacing: { after: paper.relevanceReason ? 40 : 60 },
+        })
+      );
+    }
+
+    if (paper.relevanceScore && paper.relevanceScore > 0 && paper.relevanceReason) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: paper.relevanceReason, color: "666666", size: 18 })],
+          spacing: { after: 60 },
+        })
+      );
+    }
+
     if ("tags" in paper && paper.tags.length > 0) {
       children.push(
         new Paragraph({

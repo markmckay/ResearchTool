@@ -31,9 +31,12 @@ export function BookmarkPanel({
   onUpdateNotes,
   onUpdateExclusionReason,
 }: Props) {
-  const [activeView, setActiveView] = useState<"all" | "needs-reading" | "priority-untagged">("all");
+  const [activeView, setActiveView] = useState<
+    "all" | "needs-reading" | "priority-untagged" | "high-relevance"
+  >("all");
   const [activeStatuses, setActiveStatuses] = useState<WorkspaceStatus[]>([]);
   const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [activeRelevance, setActiveRelevance] = useState<"all" | "high" | "medium" | "low" | "unscored">("all");
   const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
 
   const availableTags = useMemo(
@@ -49,17 +52,25 @@ export function BookmarkPanel({
         activeStatuses.length === 0 || activeStatuses.includes(bookmark.status);
       const matchesTags =
         activeTags.length === 0 || activeTags.every((tag) => bookmark.tags.includes(tag));
+      const score = bookmark.relevanceScore ?? 0;
+      const matchesRelevance =
+        activeRelevance === "all" ||
+        (activeRelevance === "high" && score >= 4) ||
+        (activeRelevance === "medium" && score === 3) ||
+        (activeRelevance === "low" && score > 0 && score <= 2) ||
+        (activeRelevance === "unscored" && score === 0);
       const matchesView =
         activeView === "all" ||
         (activeView === "needs-reading" &&
           (bookmark.status === "Inbox" || bookmark.status === "Maybe" || bookmark.status === "Priority")) ||
         (activeView === "priority-untagged" &&
           bookmark.status === "Priority" &&
-          bookmark.tags.length === 0);
+          bookmark.tags.length === 0) ||
+        (activeView === "high-relevance" && score >= 4);
 
-      return matchesStatus && matchesTags && matchesView;
+      return matchesStatus && matchesTags && matchesRelevance && matchesView;
     });
-  }, [activeStatuses, activeTags, activeView, bookmarks]);
+  }, [activeRelevance, activeStatuses, activeTags, activeView, bookmarks]);
 
   const toggleStatus = (status: WorkspaceStatus) => {
     setActiveStatuses((current) =>
@@ -79,6 +90,7 @@ export function BookmarkPanel({
     setActiveView("all");
     setActiveStatuses([]);
     setActiveTags([]);
+    setActiveRelevance("all");
   };
 
   const addTag = (bookmark: WorkspacePaper) => {
@@ -145,7 +157,10 @@ export function BookmarkPanel({
                       Narrow by stage and theme as you review the literature.
                     </p>
                   </div>
-                  {(activeStatuses.length > 0 || activeTags.length > 0 || activeView !== "all") && (
+                  {(activeStatuses.length > 0 ||
+                    activeTags.length > 0 ||
+                    activeRelevance !== "all" ||
+                    activeView !== "all") && (
                     <button
                       type="button"
                       onClick={clearFilters}
@@ -165,6 +180,7 @@ export function BookmarkPanel({
                       { key: "all", label: "All saved" },
                       { key: "needs-reading", label: "Needs reading" },
                       { key: "priority-untagged", label: "Priority + untagged" },
+                      { key: "high-relevance", label: "High relevance" },
                     ].map((view) => {
                       const active = activeView === view.key;
                       return (
@@ -213,6 +229,38 @@ export function BookmarkPanel({
                 </div>
 
                 <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted mb-2">
+                    Relevance
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: "all", label: "All scores" },
+                      { key: "high", label: "4-5" },
+                      { key: "medium", label: "3" },
+                      { key: "low", label: "1-2" },
+                      { key: "unscored", label: "Unscored" },
+                    ].map((filter) => {
+                      const active = activeRelevance === filter.key;
+                      return (
+                        <button
+                          key={filter.key}
+                          type="button"
+                          onClick={() => setActiveRelevance(filter.key as typeof activeRelevance)}
+                          aria-pressed={active}
+                          className={`text-xs rounded-full border px-3 py-1 transition-all ${
+                            active
+                              ? "border-accent-green/40 bg-accent-green/10 text-accent-green"
+                              : "border-white/10 text-subtle hover:border-white/20 hover:text-foreground"
+                          }`}
+                        >
+                          {filter.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-3">
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-muted mb-2">
                     Tags
                   </p>
@@ -270,6 +318,11 @@ export function BookmarkPanel({
                         {paper.authors}{paper.year ? ` · ${paper.year}` : ""}
                       </p>
                       <div className="flex flex-wrap gap-2 mb-3">
+                        {paper.relevanceScore && paper.relevanceScore > 0 ? (
+                          <span className="text-xs rounded-full border border-accent-green/20 bg-accent-green/10 px-2.5 py-1.5 text-accent-green">
+                            Relevance: {paper.relevanceScore}/5
+                          </span>
+                        ) : null}
                         <select
                           aria-label={`Set workspace status for ${paper.title}`}
                           value={paper.status}
@@ -293,6 +346,11 @@ export function BookmarkPanel({
                           {paper.citations.toLocaleString()} citations
                         </span>
                       </div>
+                      {paper.relevanceScore && paper.relevanceScore > 0 && paper.relevanceReason ? (
+                        <p className="text-xs text-subtle mb-3">
+                          {paper.relevanceReason}
+                        </p>
+                      ) : null}
 
                       <div className="mb-3">
                         <label className="block text-[11px] font-semibold uppercase tracking-widest text-muted mb-2">

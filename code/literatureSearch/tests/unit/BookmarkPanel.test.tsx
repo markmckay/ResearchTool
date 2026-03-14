@@ -11,6 +11,8 @@ const papers: WorkspacePaper[] = [
     authors: "Jane Doe",
     year: 2024,
     abstract: "First abstract.",
+    relevanceScore: 5,
+    relevanceReason: "Direct dissertation fit.",
     citations: 10,
     venue: "CHI",
     source: "OpenAlex",
@@ -29,6 +31,8 @@ const papers: WorkspacePaper[] = [
     authors: "John Roe",
     year: 2023,
     abstract: "Second abstract.",
+    relevanceScore: 2,
+    relevanceReason: "Peripheral background only.",
     citations: 6,
     venue: "ASSETS",
     source: "Semantic Scholar",
@@ -170,5 +174,22 @@ describe("BookmarkPanel", () => {
       "paper-1",
       "Outside dissertation scope"
     );
+  });
+
+  it("filters workspace papers by relevance and shows the saved score", async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    expect(screen.getByText("Relevance: 5/5")).toBeInTheDocument();
+    expect(screen.getByText("Direct dissertation fit.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "High relevance" }));
+    expect(screen.getByText("Audio-First Writing Systems")).toBeInTheDocument();
+    expect(screen.queryByText("Accessible Research Pipelines")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "All saved" }));
+    await user.click(screen.getByRole("button", { name: "1-2" }));
+    expect(screen.getByText("Accessible Research Pipelines")).toBeInTheDocument();
+    expect(screen.queryByText("Audio-First Writing Systems")).not.toBeInTheDocument();
   });
 });

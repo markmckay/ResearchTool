@@ -1,7 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import type { Paper } from "@/types/paper";
-import { createWorkspacePaper, migrateWorkspacePaper, normalizeTags } from "@/lib/workspace";
+import {
+  createWorkspacePaper,
+  mergePaperIntoWorkspacePaper,
+  migrateWorkspacePaper,
+  normalizeTags,
+} from "@/lib/workspace";
 import type { WorkspacePaper, WorkspaceStatus } from "@/types/workspace";
 
 const STORAGE_KEY = "literature-search-bookmarks";
@@ -37,8 +42,17 @@ export function useBookmarks() {
   };
 
   const addBookmark = (paper: Paper) => {
-    if (bookmarks.find((b) => b.id === paper.id)) return;
-    save([...bookmarks, createWorkspacePaper(paper)]);
+    const existing = bookmarks.find((bookmark) => bookmark.id === paper.id);
+    if (!existing) {
+      save([...bookmarks, createWorkspacePaper(paper)]);
+      return;
+    }
+
+    save(
+      bookmarks.map((bookmark) =>
+        bookmark.id === paper.id ? mergePaperIntoWorkspacePaper(bookmark, paper) : bookmark
+      )
+    );
   };
 
   const saveWorkspacePaper = (paper: Paper, status: WorkspaceStatus) => {
@@ -52,10 +66,9 @@ export function useBookmarks() {
       bookmarks.map((bookmark) =>
         bookmark.id === paper.id
           ? {
-              ...bookmark,
+              ...mergePaperIntoWorkspacePaper(bookmark, paper),
               status,
               exclusionReason: status === "Excluded" ? bookmark.exclusionReason : "",
-              updatedAt: new Date().toISOString(),
             }
           : bookmark
       )

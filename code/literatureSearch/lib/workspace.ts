@@ -10,6 +10,14 @@ const VALID_WORKSPACE_STATUSES = new Set<WorkspaceStatus>([
   "Excluded",
 ]);
 
+function normalizeRelevanceScore(value: unknown): number | undefined {
+  return typeof value === "number" && value >= 0 && value <= 5 ? value : undefined;
+}
+
+function normalizeRelevanceReason(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
 export function createWorkspacePaper(paper: Paper): WorkspacePaper {
   const timestamp = new Date().toISOString();
 
@@ -21,6 +29,22 @@ export function createWorkspacePaper(paper: Paper): WorkspacePaper {
     notes: "",
     savedAt: timestamp,
     updatedAt: timestamp,
+  };
+}
+
+export function mergePaperIntoWorkspacePaper(
+  bookmark: WorkspacePaper,
+  paper: Paper
+): WorkspacePaper {
+  return {
+    ...bookmark,
+    ...paper,
+    status: bookmark.status,
+    exclusionReason: bookmark.exclusionReason,
+    tags: bookmark.tags,
+    notes: bookmark.notes,
+    savedAt: bookmark.savedAt,
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -42,6 +66,8 @@ export function migrateWorkspacePaper(value: unknown): WorkspacePaper | null {
     authors: typeof candidate.authors === "string" ? candidate.authors : "",
     year: typeof candidate.year === "number" || candidate.year === null ? candidate.year : null,
     abstract: typeof candidate.abstract === "string" ? candidate.abstract : "No abstract available.",
+    relevanceScore: normalizeRelevanceScore(candidate.relevanceScore),
+    relevanceReason: normalizeRelevanceReason(candidate.relevanceReason),
     citations: typeof candidate.citations === "number" ? candidate.citations : 0,
     venue: typeof candidate.venue === "string" ? candidate.venue : "",
     source:

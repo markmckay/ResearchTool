@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Bookmark, Volume2, VolumeX } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
 import { PaperCard } from "@/components/PaperCard";
@@ -15,6 +15,8 @@ import type { WorkspaceStatus } from "@/types/workspace";
 export default function Home() {
   const [results, setResults] = useState<Paper[]>([]);
   const [viewMode, setViewMode] = useState<"cards" | "compact">("compact");
+  const [sortMode, setSortMode] = useState<"ai-ranked" | "original">("ai-ranked");
+  const [relevanceFilter, setRelevanceFilter] = useState<"all" | "high" | "medium" | "low" | "unscored">("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
@@ -44,6 +46,42 @@ export default function Home() {
     updateBookmarkExclusionReason,
   } = useBookmarks();
   const { speak, stop, speaking, toggleSpeak, isSpeakingKey } = useSpeech();
+
+  const displayedResults = useMemo(() => {
+    const filtered = results.filter((paper) => {
+      const score = paper.relevanceScore ?? 0;
+
+      if (relevanceFilter === "high") {
+        return score >= 4;
+      }
+
+      if (relevanceFilter === "medium") {
+        return score === 3;
+      }
+
+      if (relevanceFilter === "low") {
+        return score > 0 && score <= 2;
+      }
+
+      if (relevanceFilter === "unscored") {
+        return score === 0;
+      }
+
+      return true;
+    });
+
+    if (sortMode !== "ai-ranked" || !relevanceApplied) {
+      return filtered;
+    }
+
+    return filtered
+      .map((paper, index) => ({ paper, index }))
+      .sort((a, b) => {
+        const scoreDiff = (b.paper.relevanceScore ?? 0) - (a.paper.relevanceScore ?? 0);
+        return scoreDiff !== 0 ? scoreDiff : a.index - b.index;
+      })
+      .map(({ paper }) => paper);
+  }, [relevanceApplied, relevanceFilter, results, sortMode]);
 
   const scoreResultsByRelevance = async (papers: Paper[], requestId: number) => {
     if (papers.length === 0) {
@@ -90,20 +128,11 @@ export default function Home() {
       );
 
       setResults((currentResults) =>
-        currentResults
-          .map((paper, index) => ({
-            paper: {
-              ...paper,
-              relevanceScore: scores.get(paper.id)?.score ?? 0,
-              relevanceReason: scores.get(paper.id)?.reason,
-            },
-            index,
-          }))
-          .sort((a, b) => {
-            const scoreDiff = (b.paper.relevanceScore ?? 0) - (a.paper.relevanceScore ?? 0);
-            return scoreDiff !== 0 ? scoreDiff : a.index - b.index;
-          })
-          .map(({ paper }) => paper)
+        currentResults.map((paper) => ({
+          ...paper,
+          relevanceScore: scores.get(paper.id)?.score ?? 0,
+          relevanceReason: scores.get(paper.id)?.reason,
+        }))
       );
       setRelevanceApplied(true);
       setRelevanceAnnouncement("Results re-ranked by relevance.");
@@ -131,6 +160,7 @@ export default function Home() {
     setRelevanceLoading(false);
     setRelevanceAnnouncement("");
     setRelevanceApplied(false);
+    setRelevanceFilter("all");
     stop();
 
     try {
@@ -169,7 +199,7 @@ export default function Home() {
   };
 
   const handleReadTop5 = () => {
-    const text = results
+    const text = displayedResults
       .slice(0, 5)
       .map(
         (p, i) =>
@@ -242,7 +272,7 @@ export default function Home() {
           : relevanceAnnouncement
           ? relevanceAnnouncement
           : searched && results.length > 0
-          ? `${results.length} results found. Use headings to move through titles, or activate a title to hear a citation preview.`
+          ? `${displayedResults.length} results shown from ${results.length} results. Use headings to move through titles, or activate a title to hear a citation preview.`
           : searched
           ? "No results found."
           : ""}
@@ -328,7 +358,9 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
                 <div>
                   <h2 className="font-serif text-base text-subtle mb-2">
-                    {results.length} results
+                    {displayedResults.length === results.length
+                      ? `${results.length} results`
+                      : `${displayedResults.length} of ${results.length} results`}
                   </h2>
                   <div className="flex flex-wrap items-center gap-2">
                     {relevanceLoading ? (
@@ -367,6 +399,54 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <div
+                    className="inline-flex rounded-lg border border-white/10 p-1"
+                    role="group"
+                    aria-label="Result order"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSortMode("ai-ranked")}
+                      aria-pressed={sortMode === "ai-ranked"}
+                      className={`text-xs rounded-md px-3 py-1.5 transition-all ${
+                        sortMode === "ai-ranked"
+                          ? "bg-white/10 text-foreground"
+                          : "text-subtle hover:text-foreground"
+                      }`}
+                    >
+                      AI-ranked
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSortMode("original")}
+                      aria-pressed={sortMode === "original"}
+                      className={`text-xs rounded-md px-3 py-1.5 transition-all ${
+                        sortMode === "original"
+                          ? "bg-white/10 text-foreground"
+                          : "text-subtle hover:text-foreground"
+                      }`}
+                    >
+                      Original
+                    </button>
+                  </div>
+                  <label className="sr-only" htmlFor="relevance-filter">
+                    Filter results by relevance
+                  </label>
+                  <select
+                    id="relevance-filter"
+                    value={relevanceFilter}
+                    onChange={(event) =>
+                      setRelevanceFilter(event.target.value as typeof relevanceFilter)
+                    }
+                    className="bg-white/[0.04] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-foreground"
+                    aria-label="Filter results by relevance"
+                  >
+                    <option value="all">All scores</option>
+                    <option value="high">4-5 only</option>
+                    <option value="medium">3 only</option>
+                    <option value="low">1-2 only</option>
+                    <option value="unscored">Unscored only</option>
+                  </select>
                   <div
                     className="inline-flex rounded-lg border border-white/10 p-1"
                     role="group"
@@ -413,8 +493,16 @@ export default function Home() {
                 </div>
               </div>
 
+              {displayedResults.length === 0 ? (
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 text-center">
+                  <p className="text-sm text-foreground mb-1">No papers match this relevance filter.</p>
+                  <p className="text-xs text-muted">
+                    Try switching back to all scores or a broader band.
+                  </p>
+                </div>
+              ) : (
               <ol className={viewMode === "compact" ? "space-y-3" : "space-y-4"} aria-label="Paper results">
-                {results.map((paper, i) => (
+                {displayedResults.map((paper, i) => (
                   <li key={paper.id}>
                     {viewMode === "compact" ? (
                       <CompactPaperRow
@@ -452,6 +540,7 @@ export default function Home() {
                   </li>
                 ))}
               </ol>
+              )}
             </>
           )}
         </section>
