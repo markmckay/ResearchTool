@@ -4,6 +4,8 @@ export interface Paper {
   authors: string;
   year: number | null;
   abstract: string;
+  relevanceScore?: number;
+  relevanceReason?: string;
   citations: number;
   venue: string;
   source: "Semantic Scholar" | "OpenAlex" | "arXiv" | "IEEE";

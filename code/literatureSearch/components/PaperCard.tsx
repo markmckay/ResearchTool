@@ -6,6 +6,7 @@ import {
   PaperActionButtons,
   PaperBadges,
   PaperMeta,
+  PaperRelevanceBadge,
   PaperTitleButton,
 } from "@/components/PaperResultShared";
 import type { Paper } from "@/types/paper";
@@ -23,6 +24,8 @@ interface Props {
   onQuickWorkspaceAction?: (paper: Paper, status: WorkspaceStatus) => void;
   titleSpeaking: boolean;
   abstractSpeaking: boolean;
+  relevanceScore?: number;
+  relevanceReason?: string;
 }
 
 export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard({
@@ -37,6 +40,8 @@ export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard
   onQuickWorkspaceAction,
   titleSpeaking,
   abstractSpeaking,
+  relevanceScore,
+  relevanceReason,
 }, titleButtonRef) {
   const [expanded, setExpanded] = useState(false);
   const titleId = `paper-title-${index}`;
@@ -50,6 +55,11 @@ export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard
       {/* Title + bookmark */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
+          <PaperRelevanceBadge
+            relevanceScore={relevanceScore}
+            relevanceReason={relevanceReason}
+            className="mb-2"
+          />
           <div className="flex items-start gap-2 mb-2">
             <PaperTitleButton
               paper={paper}

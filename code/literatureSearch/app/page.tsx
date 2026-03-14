@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Bookmark, Volume2, VolumeX } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
 import { PaperCard } from "@/components/PaperCard";
@@ -20,6 +20,9 @@ export default function Home() {
   const [searched, setSearched] = useState(false);
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const [activeSources, setActiveSources] = useState<Record<string, boolean>>({});
+  const [relevanceLoading, setRelevanceLoading] = useState(false);
+  const [relevanceAnnouncement, setRelevanceAnnouncement] = useState("");
+  const relevanceRequestIdRef = useRef(0);
 
   // Summary state
   const [summaryPaper, setSummaryPaper] = useState<Paper | null>(null);
@@ -41,11 +44,88 @@ export default function Home() {
   } = useBookmarks();
   const { speak, stop, speaking, toggleSpeak, isSpeakingKey } = useSpeech();
 
+  const scoreResultsByRelevance = async (papers: Paper[], requestId: number) => {
+    if (papers.length === 0) {
+      return;
+    }
+
+    setRelevanceLoading(true);
+    setRelevanceAnnouncement("Ranking by relevance…");
+
+    try {
+      const res = await fetch("/api/relevance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          papers: papers.map((paper) => ({
+            id: paper.id,
+            title: paper.title,
+            abstract: paper.abstract,
+            authors: paper.authors,
+            year: paper.year,
+          })),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (requestId !== relevanceRequestIdRef.current) {
+        return;
+      }
+
+      if (data?.notConfigured || !res.ok || !Array.isArray(data?.papers)) {
+        setRelevanceAnnouncement("");
+        return;
+      }
+
+      const scores = new Map<string, { score: number; reason: string }>(
+        data.papers.map((paper: { id: string; score: number; reason: string }) => [
+          paper.id,
+          {
+            score: paper.score,
+            reason: paper.reason,
+          },
+        ])
+      );
+
+      setResults((currentResults) =>
+        currentResults
+          .map((paper, index) => ({
+            paper: {
+              ...paper,
+              relevanceScore: scores.get(paper.id)?.score ?? 0,
+              relevanceReason: scores.get(paper.id)?.reason,
+            },
+            index,
+          }))
+          .sort((a, b) => {
+            const scoreDiff = (b.paper.relevanceScore ?? 0) - (a.paper.relevanceScore ?? 0);
+            return scoreDiff !== 0 ? scoreDiff : a.index - b.index;
+          })
+          .map(({ paper }) => paper)
+      );
+      setRelevanceAnnouncement("Results re-ranked by relevance.");
+    } catch {
+      if (requestId !== relevanceRequestIdRef.current) {
+        return;
+      }
+
+      setRelevanceAnnouncement("");
+    } finally {
+      if (requestId === relevanceRequestIdRef.current) {
+        setRelevanceLoading(false);
+      }
+    }
+  };
+
   const handleSearch = async (query: string) => {
+    const requestId = relevanceRequestIdRef.current + 1;
+    relevanceRequestIdRef.current = requestId;
     setLoading(true);
     setError(null);
     setResults([]);
     setSearched(true);
+    setRelevanceLoading(false);
+    setRelevanceAnnouncement("");
     stop();
 
     try {
@@ -54,8 +134,10 @@ export default function Home() {
       if (!res.ok) {
         throw new Error(data?.error ?? `Search failed with status ${res.status}.`);
       }
-      setResults(data.results ?? []);
+      const nextResults = data.results ?? [];
+      setResults(nextResults);
       setActiveSources(data.sources ?? {});
+      void scoreResultsByRelevance(nextResults, requestId);
     } catch (error) {
       setError(
         error instanceof Error
@@ -150,6 +232,10 @@ export default function Home() {
       >
         {loading
           ? "Searching…"
+          : relevanceLoading
+          ? "Ranking by relevance…"
+          : relevanceAnnouncement
+          ? relevanceAnnouncement
           : searched && results.length > 0
           ? `${results.length} results found. Use headings to move through titles, or activate a title to hear a citation preview.`
           : searched
@@ -237,8 +323,13 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
                 <div>
                   <h2 className="font-serif text-base text-subtle mb-2">
-                    {results.length} results · sorted by relevance
+                    {results.length} results
                   </h2>
+                  {relevanceLoading ? (
+                    <p className="text-xs text-muted" aria-hidden="true">
+                      Ranking by relevance…
+                    </p>
+                  ) : null}
                   {/* Source status badges */}
                   <div className="flex flex-wrap gap-1.5" aria-label="Active sources">
                     {[
@@ -317,6 +408,8 @@ export default function Home() {
                       <CompactPaperRow
                         paper={paper}
                         index={i}
+                        relevanceScore={paper.relevanceScore}
+                        relevanceReason={paper.relevanceReason}
                         isBookmarked={isBookmarked(paper.id)}
                         onBookmark={addBookmark}
                         onRemoveBookmark={removeBookmark}
@@ -331,6 +424,8 @@ export default function Home() {
                       <PaperCard
                         paper={paper}
                         index={i}
+                        relevanceScore={paper.relevanceScore}
+                        relevanceReason={paper.relevanceReason}
                         isBookmarked={isBookmarked(paper.id)}
                         onBookmark={addBookmark}
                         onRemoveBookmark={removeBookmark}

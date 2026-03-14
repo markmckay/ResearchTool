@@ -74,6 +74,51 @@ export function PaperMeta({ paper, metaId, className = "text-subtle text-sm" }: 
   );
 }
 
+interface PaperRelevanceBadgeProps {
+  relevanceScore?: number;
+  relevanceReason?: string;
+  className?: string;
+}
+
+function getRelevanceClass(score: number) {
+  if (score >= 4) {
+    return "bg-accent-green/10 text-accent-green border-accent-green/20";
+  }
+
+  if (score === 3) {
+    return "bg-amber-500/10 text-amber-300 border-amber-500/20";
+  }
+
+  return "bg-white/5 text-muted border-white/10";
+}
+
+export function PaperRelevanceBadge({
+  relevanceScore,
+  relevanceReason,
+  className = "mb-3",
+}: PaperRelevanceBadgeProps) {
+  if (!relevanceScore || relevanceScore <= 0) {
+    return null;
+  }
+
+  return (
+    <div className={className}>
+      <div
+        className={`inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-medium ${getRelevanceClass(
+          relevanceScore
+        )}`}
+      >
+        Relevance: {relevanceScore}/5
+      </div>
+      {relevanceReason ? (
+        <p className="mt-1 text-xs text-subtle leading-relaxed">
+          {relevanceReason}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 interface PaperBadgesProps {
   paper: Paper;
   className?: string;

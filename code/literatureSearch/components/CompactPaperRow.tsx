@@ -6,6 +6,7 @@ import {
   PaperActionButtons,
   PaperBadges,
   PaperMeta,
+  PaperRelevanceBadge,
   PaperTitleButton,
 } from "@/components/PaperResultShared";
 import type { Paper } from "@/types/paper";
@@ -23,6 +24,8 @@ interface Props {
   onQuickWorkspaceAction?: (paper: Paper, status: WorkspaceStatus) => void;
   titleSpeaking: boolean;
   abstractSpeaking: boolean;
+  relevanceScore?: number;
+  relevanceReason?: string;
 }
 
 export const CompactPaperRow = forwardRef<HTMLButtonElement, Props>(function CompactPaperRow(
@@ -38,6 +41,8 @@ export const CompactPaperRow = forwardRef<HTMLButtonElement, Props>(function Com
     onQuickWorkspaceAction,
     titleSpeaking,
     abstractSpeaking,
+    relevanceScore,
+    relevanceReason,
   },
   titleButtonRef
 ) {
@@ -47,6 +52,11 @@ export const CompactPaperRow = forwardRef<HTMLButtonElement, Props>(function Com
     <article className="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-accent/30 rounded-2xl px-5 py-4 transition-all">
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <div className="min-w-0">
+          <PaperRelevanceBadge
+            relevanceScore={relevanceScore}
+            relevanceReason={relevanceReason}
+            className="mb-2"
+          />
           <PaperTitleButton
             paper={paper}
             index={index}

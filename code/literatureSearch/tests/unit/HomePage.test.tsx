@@ -21,9 +21,11 @@ vi.mock("@/lib/exportDocx", () => ({
 }));
 
 vi.mock("@/components/PaperCard", () => ({
-  PaperCard: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void }) => (
+  PaperCard: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction, relevanceScore, relevanceReason }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void; relevanceScore?: number; relevanceReason?: string }) => (
     <div data-testid={`card-${paper.id}`}>
       <span>{paper.title}</span>
+      <span>{relevanceScore ? `Relevance: ${relevanceScore}/5` : "No relevance"}</span>
+      <span>{relevanceReason ?? "No reason"}</span>
       <button type="button" onClick={() => onReadTitle(paper)}>
         Title action {paper.id}
       </button>
@@ -38,9 +40,11 @@ vi.mock("@/components/PaperCard", () => ({
 }));
 
 vi.mock("@/components/CompactPaperRow", () => ({
-  CompactPaperRow: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void }) => (
+  CompactPaperRow: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction, relevanceScore, relevanceReason }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void; relevanceScore?: number; relevanceReason?: string }) => (
     <div data-testid={`row-${paper.id}`}>
       <span>{paper.title}</span>
+      <span>{relevanceScore ? `Relevance: ${relevanceScore}/5` : "No relevance"}</span>
+      <span>{relevanceReason ?? "No reason"}</span>
       <button type="button" onClick={() => onReadTitle(paper)}>
         Title action {paper.id}
       </button>
@@ -166,6 +170,14 @@ describe("Home page", () => {
           ieeeConfigured: false,
         },
       }),
+    }).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        papers: [
+          { id: "paper-2", score: 5, reason: "Directly related." },
+          { id: "paper-1", score: 3, reason: "Useful background." },
+        ],
+      }),
     });
 
     render(<Home />);
@@ -174,10 +186,13 @@ describe("Home page", () => {
     await user.click(screen.getByRole("button", { name: /search for papers/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/2 results · sorted by relevance/i)).toBeInTheDocument();
+      expect(screen.getByText(/2 results/i)).toBeInTheDocument();
     });
 
     expect(mockUseSpeech().stop).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByText("Relevance: 5/5")).toBeInTheDocument();
+    });
     expect(screen.getByTestId("row-paper-1")).toBeInTheDocument();
     expect(screen.getByLabelText(/IEEE: not configured/i)).toBeInTheDocument();
 
@@ -221,6 +236,10 @@ describe("Home page", () => {
             ieeeConfigured: false,
           },
         }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ notConfigured: true, papers: [] }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -303,6 +322,9 @@ describe("Home page", () => {
           ieeeConfigured: false,
         },
       }),
+    }).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ notConfigured: true, papers: [] }),
     });
 
     render(<Home />);
@@ -316,5 +338,88 @@ describe("Home page", () => {
 
     await user.click(screen.getByRole("button", { name: /exclude paper-1/i }));
     expect(saveWorkspacePaper).toHaveBeenCalledWith(results[0], "Excluded");
+  });
+
+  it("re-ranks results after relevance scoring and ignores stale batches", async () => {
+    const user = userEvent.setup();
+    let resolveFirstRelevance: ((value: unknown) => void) | undefined;
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          results,
+          sources: {
+            semanticScholar: true,
+            openAlex: true,
+            arxiv: false,
+            ieee: false,
+            ieeeConfigured: false,
+          },
+        }),
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstRelevance = resolve;
+          })
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          results: [...results].reverse(),
+          sources: {
+            semanticScholar: true,
+            openAlex: true,
+            arxiv: false,
+            ieee: false,
+            ieeeConfigured: false,
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          papers: [
+            { id: "paper-1", score: 5, reason: "Best match." },
+            { id: "paper-2", score: 2, reason: "Peripheral." },
+          ],
+        }),
+      });
+
+    render(<Home />);
+
+    await user.type(screen.getByRole("searchbox", { name: /enter your research search query/i }), "audio research");
+    await user.click(screen.getByRole("button", { name: /search for papers/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(/ranking by relevance/i);
+    });
+
+    await user.clear(screen.getByRole("searchbox", { name: /enter your research search query/i }));
+    await user.type(screen.getByRole("searchbox", { name: /enter your research search query/i }), "speech interfaces");
+    await user.click(screen.getByRole("button", { name: /search for papers/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Best match.")).toBeInTheDocument();
+    });
+
+    resolveFirstRelevance?.({
+      ok: true,
+      json: async () => ({
+        papers: [
+          { id: "paper-2", score: 5, reason: "Stale result." },
+          { id: "paper-1", score: 1, reason: "Stale result." },
+        ],
+      }),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Results re-ranked by relevance.")).toBeInTheDocument();
+    });
+
+    const rows = screen.getAllByTestId(/row-paper-/);
+    expect(rows[0]).toHaveAttribute("data-testid", "row-paper-1");
+    expect(screen.getByText("Best match.")).toBeInTheDocument();
   });
 });
