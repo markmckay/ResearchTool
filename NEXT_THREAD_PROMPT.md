@@ -6,11 +6,12 @@ Start by reading:
 
 - `AGENTS.md`
 - `HANDOFF.md`
+- `documents/relevance-scoring-session-prompt.md`
 
 Current known good checkpoint:
 
 - Branch: `main`
-- Latest pushed verified commit: `edad3af` - `Add research workspace triage and compact results`
+- Latest pushed verified commit: `c88b805` - `Add faster workspace triage controls`
 
 Important working agreement:
 
@@ -26,24 +27,33 @@ Current product state:
 
 - The app now has:
   - compact and card result layouts
-  - a refined toolbar with fewer non-essential controls
-  - a local research workspace model built on saved papers
-  - statuses: `Inbox`, `Maybe`, `Priority`, `Read`, `Excluded`
-  - freeform tags
-  - per-paper notes
-  - workspace filtering by status and tags
-- These changes are already committed and pushed in `edad3af`.
+  - query-aware ranking from the search route
+  - OpenRouter summarization
+  - optional shared-login protection for hosted/private deployments
+  - a local research workspace model with:
+    - statuses: `Inbox`, `Maybe`, `Priority`, `Read`, `Excluded`
+    - tags
+    - notes
+    - exclusion reasons
+    - smart views
+    - quick triage actions from results
 
 Current repo state:
 
-- There is still a dirty worktree with unrelated older changes and generated artifacts not included in the clean feature commit.
-- Treat cleanup as a separate batch.
+- `main` is clean.
+- Quality control is now built in:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run test:unit:coverage`
+  - `npm run qc`
+  - `npm run qc:full`
+- CI exists in `.github/workflows/quality.yml`.
 
 What to do next:
 
-1. Perform a focused code review / quality audit of `code/literatureSearch`.
-2. Present findings first, ordered by severity, with file references.
-3. Then start implementing the highest-value cleanup fixes immediately.
+1. Implement the relevance-scoring feature described in `documents/relevance-scoring-session-prompt.md`.
+2. Keep changes tightly scoped to that feature.
+3. Add focused tests where they are most valuable.
 4. Verify with:
 
 ```bash
@@ -52,26 +62,23 @@ npm run test:unit
 npm run build
 ```
 
-5. Commit and push the cleanup batch to `origin/main`.
+5. Commit and push the feature batch to `origin/main`.
 
-What to prioritize in the review:
+Implementation guidance:
 
-- TypeScript safety and data-model consistency
-- React/Next best practices
-- duplicated code or duplicated UI patterns
-- fragile localStorage/workspace behavior
-- missing tests around the new workspace model
-- opportunities to add or strengthen lint/static-analysis checks without slowing velocity too much
+- The prompt in `documents/relevance-scoring-session-prompt.md` has already been tightened to fit this repo.
+- Make sure relevance UI works for both compact and card result layouts.
+- Protect against stale relevance responses overwriting newer searches.
+- If the relevance route is not configured, skip gracefully without a user-facing error.
 
 Product context:
 
 - This is primarily a bespoke PhD research tool for the user.
 - Accessibility and low-friction research workflow matter more than generic enterprise complexity.
-- We still expect more literature sources to be added later, and likely a source-selector redesign.
-- Backend persistence is intentionally deferred until the workflow stabilizes.
+- Backend persistence is still intentionally deferred until the workflow stabilizes.
 
 Tone/context:
 
 - Move confidently.
-- Favor practical senior-engineer cleanup over process-heavy ceremony.
-- Keep changes tightly scoped.
+- Favor practical, shippable feature work.
+- Keep the batch cohesive and verify it before pushing.
