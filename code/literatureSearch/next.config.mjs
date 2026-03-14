@@ -18,10 +18,20 @@ function resolveBuildId() {
   }
 }
 
+function resolveBuildTimestamp() {
+  const explicitBuildTime = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP;
+  if (explicitBuildTime) {
+    return explicitBuildTime;
+  }
+
+  return new Date().toISOString();
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_ID: resolveBuildId(),
+    NEXT_PUBLIC_BUILD_TIMESTAMP: resolveBuildTimestamp(),
   },
 };
 export default nextConfig;
