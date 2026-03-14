@@ -22,6 +22,7 @@ export default function Home() {
   const [activeSources, setActiveSources] = useState<Record<string, boolean>>({});
   const [relevanceLoading, setRelevanceLoading] = useState(false);
   const [relevanceAnnouncement, setRelevanceAnnouncement] = useState("");
+  const [relevanceApplied, setRelevanceApplied] = useState(false);
   const relevanceRequestIdRef = useRef(0);
 
   // Summary state
@@ -73,6 +74,7 @@ export default function Home() {
       }
 
       if (data?.notConfigured || !res.ok || !Array.isArray(data?.papers)) {
+        setRelevanceApplied(false);
         setRelevanceAnnouncement("");
         return;
       }
@@ -103,12 +105,14 @@ export default function Home() {
           })
           .map(({ paper }) => paper)
       );
+      setRelevanceApplied(true);
       setRelevanceAnnouncement("Results re-ranked by relevance.");
     } catch {
       if (requestId !== relevanceRequestIdRef.current) {
         return;
       }
 
+      setRelevanceApplied(false);
       setRelevanceAnnouncement("");
     } finally {
       if (requestId === relevanceRequestIdRef.current) {
@@ -126,6 +130,7 @@ export default function Home() {
     setSearched(true);
     setRelevanceLoading(false);
     setRelevanceAnnouncement("");
+    setRelevanceApplied(false);
     stop();
 
     try {
@@ -325,11 +330,18 @@ export default function Home() {
                   <h2 className="font-serif text-base text-subtle mb-2">
                     {results.length} results
                   </h2>
-                  {relevanceLoading ? (
-                    <p className="text-xs text-muted" aria-hidden="true">
-                      Ranking by relevance…
-                    </p>
-                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {relevanceLoading ? (
+                      <p className="text-xs text-muted" aria-hidden="true">
+                        Ranking by relevance…
+                      </p>
+                    ) : null}
+                    {relevanceApplied ? (
+                      <span className="inline-flex items-center rounded-full border border-accent-green/20 bg-accent-green/10 px-2.5 py-0.5 text-xs text-accent-green">
+                        AI-ranked
+                      </span>
+                    ) : null}
+                  </div>
                   {/* Source status badges */}
                   <div className="flex flex-wrap gap-1.5" aria-label="Active sources">
                     {[

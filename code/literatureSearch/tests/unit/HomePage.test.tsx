@@ -193,6 +193,7 @@ describe("Home page", () => {
     await waitFor(() => {
       expect(screen.getByText("Relevance: 5/5")).toBeInTheDocument();
     });
+    expect(screen.getByText("AI-ranked")).toBeInTheDocument();
     expect(screen.getByTestId("row-paper-1")).toBeInTheDocument();
     expect(screen.getByLabelText(/IEEE: not configured/i)).toBeInTheDocument();
 
@@ -403,6 +404,7 @@ describe("Home page", () => {
     await waitFor(() => {
       expect(screen.getByText("Best match.")).toBeInTheDocument();
     });
+    expect(screen.getByText("AI-ranked")).toBeInTheDocument();
 
     resolveFirstRelevance?.({
       ok: true,
