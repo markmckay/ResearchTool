@@ -36,7 +36,8 @@ cp .env.example .env.local
 ```
 
 Open `.env.local` and add your Anthropic API key:
-```
+
+```env
 ANTHROPIC_API_KEY=your_key_here
 ```
 
@@ -51,6 +52,25 @@ npm run dev
 ```
 
 Open http://localhost:3000
+
+---
+
+## Quality Checks
+
+Run these from `code/literatureSearch`:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test:unit
+npm run test:unit:coverage
+npm run test:e2e
+npm run qc
+npm run qc:full
+```
+
+- `npm run qc` runs the fast local gate: lint, typecheck, and unit tests.
+- `npm run qc:full` runs the full pass: `qc`, coverage, production build, and Playwright e2e.
 
 ---
 

@@ -1,3 +1,21 @@
 {
-  "extends": ["next/core-web-vitals"]
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": ["node_modules/", ".next/", ".next.bak.*/", ".next.prebuild.*/", "coverage/", "output/"],
+  "overrides": [
+    {
+      "files": ["tests/unit/**/*.{ts,tsx}", "vitest.setup.ts", "vitest.d.ts"],
+      "extends": ["plugin:testing-library/react"],
+      "globals": {
+        "beforeEach": "readonly",
+        "describe": "readonly",
+        "expect": "readonly",
+        "it": "readonly",
+        "vi": "readonly"
+      }
+    },
+    {
+      "files": ["tests/e2e/**/*.ts"],
+      "extends": ["plugin:playwright/playwright-test"]
+    }
+  ]
 }

@@ -34,7 +34,7 @@ test.beforeEach(async ({ page }) => {
       cancel: () => {},
       speak: (utterance: SpeechSynthesisUtterance) => {
         spoken.push(utterance.text);
-        utterance.onstart?.(new Event("start"));
+        utterance.onstart?.(new Event("start") as SpeechSynthesisEvent);
       },
     };
 
@@ -90,7 +90,7 @@ test("search results load without forcing the page to jump down", async ({ page 
   await page.getByRole("searchbox", { name: /enter your research search query/i }).fill("authorial control AI writing");
   await page.getByRole("button", { name: /search for papers/i }).click();
 
-  await expect(page.getByRole("heading", { name: /2 results · sorted by citations/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /2 results · sorted by relevance/i })).toBeVisible();
 
   const scrollY = await page.evaluate(() => window.scrollY);
   expect(scrollY).toBeLessThan(80);
