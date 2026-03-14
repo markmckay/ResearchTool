@@ -45,7 +45,7 @@ export default function RootLayout({
     <html lang="en" className={`${headingFont.variable} ${bodyFont.variable}`}>
       <body>
         {children}
-        <div className="fixed bottom-3 left-3 z-50 max-w-[calc(100vw-1.5rem)] rounded-xl border border-white/15 bg-slate-950/85 px-3 py-2 text-[11px] text-slate-200 shadow-lg backdrop-blur-sm">
+        <div className="fixed bottom-3 right-3 z-50 max-w-[calc(100vw-1.5rem)] rounded-xl border border-white/15 bg-slate-950/85 px-3 py-2 text-[11px] text-slate-200 shadow-lg backdrop-blur-sm">
           <p className="font-semibold tracking-wide text-slate-100">
             <span className="sr-only">Current build </span>
             Build {buildId}
