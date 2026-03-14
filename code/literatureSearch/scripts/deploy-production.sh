@@ -10,6 +10,24 @@ build_id="$(git -C "$repo_root" rev-parse --short HEAD)"
 build_timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 production_url="https://researchtool-literature-search.vercel.app"
 
+verify_live_build() {
+  BUILD_ID="$1" PRODUCTION_URL="$2" node <<'EOF'
+const buildId = process.env.BUILD_ID;
+const productionUrl = process.env.PRODUCTION_URL;
+
+const response = await fetch(productionUrl, {
+  redirect: "follow",
+  headers: { "user-agent": "researchtool-deploy-check" },
+});
+const html = await response.text();
+const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+if (!text.includes(`Build ${buildId}`)) {
+  process.exit(1);
+}
+EOF
+}
+
 cd "$app_dir"
 
 echo "Running unit tests..."
@@ -27,8 +45,7 @@ npx vercel deploy --prod --yes \
 
 echo "Verifying live production badge..."
 for attempt in {1..12}; do
-  live_html="$(curl -fsSL "$production_url")"
-  if [[ "$live_html" == *"Build $build_id"* ]]; then
+  if verify_live_build "$build_id" "$production_url"; then
     echo "Production is live at $production_url with build $build_id"
     exit 0
   fi
