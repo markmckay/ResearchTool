@@ -2,7 +2,7 @@
 
 An accessible, audio-first academic paper search tool built with Next.js, shadcn/ui, and Tailwind CSS.
 
-Searches **Semantic Scholar** and **OpenAlex** simultaneously — both free, no login required.
+Searches **Semantic Scholar** and **OpenAlex** simultaneously, with an optional shared-login gate for private deployments.
 
 ---
 
@@ -13,7 +13,7 @@ Searches **Semantic Scholar** and **OpenAlex** simultaneously — both free, no 
 - **Read aloud** — every abstract and summary can be read via TTS
 - **Bookmark** papers to a saved list
 - **Export** saved papers to a Word document (.docx)
-- **AI summarization** — plain language summaries (requires Anthropic API key)
+- **AI summarization** — plain language summaries (requires OpenRouter API key)
 - Full keyboard navigation and screen reader support
 
 ---
@@ -29,21 +29,25 @@ cd literature-search
 npm install
 ```
 
-### 2. Configure environment (optional — for AI summarization)
+### 2. Configure environment
 
 ```bash
 cp .env.example .env.local
 ```
 
-Open `.env.local` and add your Anthropic API key:
+Open `.env.local` and add what you need:
 
 ```env
-ANTHROPIC_API_KEY=your_key_here
+APP_LOGIN_USERNAME=your_username
+APP_LOGIN_PASSWORD=your_password
+AUTH_SESSION_SECRET=choose_a_long_random_secret
+OPENROUTER_API_KEY=your_key_here
+OPENROUTER_MODEL=anthropic/claude-sonnet-4.5
 ```
 
-Get a key at https://console.anthropic.com — free tier is sufficient.
+Get a key at https://openrouter.ai/ and choose the model you want to use.
 
-Everything except AI summarization works without this key.
+The shared login is optional locally. Everything except AI summarization works without the OpenRouter settings.
 
 ### 3. Run locally
 
@@ -71,6 +75,7 @@ npm run qc:full
 
 - `npm run qc` runs the fast local gate: lint, typecheck, and unit tests.
 - `npm run qc:full` runs the full pass: `qc`, coverage, production build, and Playwright e2e.
+- The auth e2e test is skipped unless shared-login environment variables are configured.
 
 ---
 
@@ -79,7 +84,12 @@ npm run qc:full
 1. Push this folder to a GitHub repository
 2. Go to https://vercel.com and sign in with GitHub
 3. Click "Add New Project" and import your repo
-4. Add your `ANTHROPIC_API_KEY` in the Environment Variables section
+4. Add your environment variables in the Environment Variables section:
+   - `APP_LOGIN_USERNAME`
+   - `APP_LOGIN_PASSWORD`
+   - `AUTH_SESSION_SECRET`
+   - `OPENROUTER_API_KEY` if you want summaries enabled
+   - `OPENROUTER_MODEL` for the summarization model
 5. Click Deploy
 
 Done. Vercel auto-deploys on every push to main.
@@ -94,7 +104,7 @@ app/
   layout.tsx            # Root layout
   api/
     search/route.ts     # Queries both APIs server-side
-    summarize/route.ts  # AI summarization (needs API key)
+    summarize/route.ts  # AI summarization via OpenRouter
 components/
   SearchBar.tsx         # Query input + quick searches
   PaperCard.tsx         # Individual result card

@@ -67,7 +67,8 @@ export function SummaryDialog({
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
                 <p className="text-amber-300 text-sm font-semibold mb-1">API key not configured yet</p>
                 <p className="text-subtle text-sm">
-                  Add your <code className="text-accent">ANTHROPIC_API_KEY</code> to{" "}
+                  Add your <code className="text-accent">OPENROUTER_API_KEY</code> and{" "}
+                  <code className="text-accent">OPENROUTER_MODEL</code> to{" "}
                   <code className="text-accent">.env.local</code> to enable AI summarization.
                   Everything else works without it.
                 </p>

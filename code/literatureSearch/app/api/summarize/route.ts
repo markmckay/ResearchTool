@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL;
 
-  if (!apiKey) {
+  if (!apiKey || !model) {
     return NextResponse.json(
       {
         error:
-          "AI summarization is not yet configured. Add your ANTHROPIC_API_KEY to .env.local to enable this feature.",
+          "AI summarization is not yet configured. Add your OPENROUTER_API_KEY and OPENROUTER_MODEL to .env.local to enable this feature.",
         notConfigured: true,
       },
       { status: 503 }
@@ -28,15 +29,14 @@ Abstract: ${abstract}
 
 Plain language summary:`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model,
       max_tokens: 300,
       messages: [{ role: "user", content: prompt }],
     }),
@@ -50,6 +50,6 @@ Plain language summary:`;
   }
 
   const data = await response.json();
-  const summary = data.content?.[0]?.text ?? "Could not generate summary.";
+  const summary = data.choices?.[0]?.message?.content ?? "Could not generate summary.";
   return NextResponse.json({ summary });
 }

@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     ...(ieee.status === "fulfilled" ? ieee.value : []),
   ];
 
-  const results = deduplicateAndRank(combined);
+  const results = deduplicateAndRank(combined, query);
 
   const sources = {
     semanticScholar: ss.status === "fulfilled",
