@@ -10,6 +10,7 @@ import { useBookmarks } from "@/hooks/useBookmarks";
 import { useSpeech } from "@/hooks/useSpeech";
 import { exportBookmarksToDocx } from "@/lib/exportDocx";
 import type { Paper } from "@/types/paper";
+import type { WorkspaceStatus } from "@/types/workspace";
 
 export default function Home() {
   const [results, setResults] = useState<Paper[]>([]);
@@ -30,11 +31,13 @@ export default function Home() {
   const {
     bookmarks,
     addBookmark,
+    saveWorkspacePaper,
     removeBookmark,
     isBookmarked,
     updateBookmarkStatus,
     updateBookmarkTags,
     updateBookmarkNotes,
+    updateBookmarkExclusionReason,
   } = useBookmarks();
   const { speak, stop, speaking, toggleSpeak, isSpeakingKey } = useSpeech();
 
@@ -125,6 +128,10 @@ export default function Home() {
   const handleExport = async () => {
     if (bookmarks.length === 0) return;
     await exportBookmarksToDocx(bookmarks);
+  };
+
+  const handleQuickWorkspaceAction = (paper: Paper, status: WorkspaceStatus) => {
+    saveWorkspacePaper(paper, status);
   };
 
   return (
@@ -316,6 +323,7 @@ export default function Home() {
                         onReadTitle={handleReadTitle}
                         onReadAloud={handleReadAloud}
                         onSummarize={handleSummarize}
+                        onQuickWorkspaceAction={handleQuickWorkspaceAction}
                         titleSpeaking={isSpeakingKey(`title:${paper.id}`)}
                         abstractSpeaking={isSpeakingKey(`abstract:${paper.id}`)}
                       />
@@ -329,6 +337,7 @@ export default function Home() {
                         onReadTitle={handleReadTitle}
                         onReadAloud={handleReadAloud}
                         onSummarize={handleSummarize}
+                        onQuickWorkspaceAction={handleQuickWorkspaceAction}
                         titleSpeaking={isSpeakingKey(`title:${paper.id}`)}
                         abstractSpeaking={isSpeakingKey(`abstract:${paper.id}`)}
                       />
@@ -352,6 +361,7 @@ export default function Home() {
         onUpdateStatus={updateBookmarkStatus}
         onUpdateTags={updateBookmarkTags}
         onUpdateNotes={updateBookmarkNotes}
+        onUpdateExclusionReason={updateBookmarkExclusionReason}
       />
 
       {/* Summary dialog */}

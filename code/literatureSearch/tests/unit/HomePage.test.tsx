@@ -21,7 +21,7 @@ vi.mock("@/lib/exportDocx", () => ({
 }));
 
 vi.mock("@/components/PaperCard", () => ({
-  PaperCard: ({ paper, onSummarize, onReadTitle }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void }) => (
+  PaperCard: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void }) => (
     <div data-testid={`card-${paper.id}`}>
       <span>{paper.title}</span>
       <button type="button" onClick={() => onReadTitle(paper)}>
@@ -30,12 +30,15 @@ vi.mock("@/components/PaperCard", () => ({
       <button type="button" onClick={() => onSummarize(paper)}>
         Summarize {paper.id}
       </button>
+      <button type="button" onClick={() => onQuickWorkspaceAction?.(paper, "Priority")}>
+        Priority {paper.id}
+      </button>
     </div>
   ),
 }));
 
 vi.mock("@/components/CompactPaperRow", () => ({
-  CompactPaperRow: ({ paper, onSummarize, onReadTitle }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void }) => (
+  CompactPaperRow: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void }) => (
     <div data-testid={`row-${paper.id}`}>
       <span>{paper.title}</span>
       <button type="button" onClick={() => onReadTitle(paper)}>
@@ -43,6 +46,9 @@ vi.mock("@/components/CompactPaperRow", () => ({
       </button>
       <button type="button" onClick={() => onSummarize(paper)}>
         Summarize {paper.id}
+      </button>
+      <button type="button" onClick={() => onQuickWorkspaceAction?.(paper, "Excluded")}>
+        Exclude {paper.id}
       </button>
     </div>
   ),
@@ -128,11 +134,13 @@ describe("Home page", () => {
     mockUseBookmarks.mockReturnValue({
       bookmarks: [results[0]],
       addBookmark: vi.fn(),
+      saveWorkspacePaper: vi.fn(),
       removeBookmark: vi.fn(),
       isBookmarked: vi.fn().mockReturnValue(false),
       updateBookmarkStatus: vi.fn(),
       updateBookmarkTags: vi.fn(),
       updateBookmarkNotes: vi.fn(),
+      updateBookmarkExclusionReason: vi.fn(),
     });
 
     mockUseSpeech.mockReturnValue({
@@ -253,15 +261,60 @@ describe("Home page", () => {
     mockUseBookmarks.mockReturnValueOnce({
       bookmarks: [],
       addBookmark: vi.fn(),
+      saveWorkspacePaper: vi.fn(),
       removeBookmark: vi.fn(),
       isBookmarked: vi.fn().mockReturnValue(false),
       updateBookmarkStatus: vi.fn(),
       updateBookmarkTags: vi.fn(),
       updateBookmarkNotes: vi.fn(),
+      updateBookmarkExclusionReason: vi.fn(),
     });
 
     render(<Home />);
     await user.click(screen.getAllByRole("button", { name: /export bookmarks/i })[1]);
     expect(exportBookmarksToDocx).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends quick workspace actions from result rows", async () => {
+    const user = userEvent.setup();
+    const saveWorkspacePaper = vi.fn();
+
+    mockUseBookmarks.mockReturnValue({
+      bookmarks: [],
+      addBookmark: vi.fn(),
+      saveWorkspacePaper,
+      removeBookmark: vi.fn(),
+      isBookmarked: vi.fn().mockReturnValue(false),
+      updateBookmarkStatus: vi.fn(),
+      updateBookmarkTags: vi.fn(),
+      updateBookmarkNotes: vi.fn(),
+      updateBookmarkExclusionReason: vi.fn(),
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results,
+        sources: {
+          semanticScholar: true,
+          openAlex: true,
+          arxiv: false,
+          ieee: false,
+          ieeeConfigured: false,
+        },
+      }),
+    });
+
+    render(<Home />);
+
+    await user.type(screen.getByRole("searchbox", { name: /enter your research search query/i }), "audio research");
+    await user.click(screen.getByRole("button", { name: /search for papers/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("row-paper-1")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /exclude paper-1/i }));
+    expect(saveWorkspacePaper).toHaveBeenCalledWith(results[0], "Excluded");
   });
 });

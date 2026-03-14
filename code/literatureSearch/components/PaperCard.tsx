@@ -9,6 +9,7 @@ import {
   PaperTitleButton,
 } from "@/components/PaperResultShared";
 import type { Paper } from "@/types/paper";
+import type { WorkspaceStatus } from "@/types/workspace";
 
 interface Props {
   paper: Paper;
@@ -19,6 +20,7 @@ interface Props {
   onReadTitle: (paper: Paper) => void;
   onReadAloud: (paper: Paper) => void;
   onSummarize: (paper: Paper) => void;
+  onQuickWorkspaceAction?: (paper: Paper, status: WorkspaceStatus) => void;
   titleSpeaking: boolean;
   abstractSpeaking: boolean;
 }
@@ -32,6 +34,7 @@ export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard
   onReadTitle,
   onReadAloud,
   onSummarize,
+  onQuickWorkspaceAction,
   titleSpeaking,
   abstractSpeaking,
 }, titleButtonRef) {
@@ -109,6 +112,7 @@ export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard
           paper={paper}
           onReadAloud={onReadAloud}
           onSummarize={onSummarize}
+          onQuickWorkspaceAction={onQuickWorkspaceAction}
           abstractSpeaking={abstractSpeaking}
         />
       </div>

@@ -17,6 +17,7 @@ const papers: WorkspacePaper[] = [
     pdfUrl: null,
     doi: null,
     status: "Inbox",
+    exclusionReason: "",
     tags: ["audio", "workflow"],
     notes: "",
     savedAt: "2026-01-01T00:00:00.000Z",
@@ -34,6 +35,7 @@ const papers: WorkspacePaper[] = [
     pdfUrl: null,
     doi: null,
     status: "Read",
+    exclusionReason: "",
     tags: ["accessibility"],
     notes: "Useful for background",
     savedAt: "2026-01-02T00:00:00.000Z",
@@ -45,6 +47,7 @@ function renderPanel() {
   const onUpdateStatus = vi.fn();
   const onUpdateTags = vi.fn();
   const onUpdateNotes = vi.fn();
+  const onUpdateExclusionReason = vi.fn();
 
   function StatefulPanel() {
     const [bookmarks, setBookmarks] = useState(papers);
@@ -75,13 +78,21 @@ function renderPanel() {
             current.map((bookmark) => (bookmark.id === id ? { ...bookmark, notes } : bookmark))
           );
         }}
+        onUpdateExclusionReason={(id, exclusionReason) => {
+          onUpdateExclusionReason(id, exclusionReason);
+          setBookmarks((current) =>
+            current.map((bookmark) =>
+              bookmark.id === id ? { ...bookmark, exclusionReason } : bookmark
+            )
+          );
+        }}
       />
     );
   }
 
   render(<StatefulPanel />);
 
-  return { onUpdateStatus, onUpdateTags, onUpdateNotes };
+  return { onUpdateStatus, onUpdateTags, onUpdateNotes, onUpdateExclusionReason };
 }
 
 describe("BookmarkPanel", () => {
@@ -132,6 +143,32 @@ describe("BookmarkPanel", () => {
     expect(onUpdateNotes).toHaveBeenLastCalledWith(
       "paper-1",
       "Capture this for chapter 2."
+    );
+  });
+
+  it("supports smart views and exclusion reasons", async () => {
+    const user = userEvent.setup();
+    const { onUpdateStatus, onUpdateExclusionReason } = renderPanel();
+
+    await user.click(screen.getByRole("button", { name: "Needs reading" }));
+    expect(screen.getByText("Audio-First Writing Systems")).toBeInTheDocument();
+    expect(screen.queryByText("Accessible Research Pipelines")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "All saved" }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /set workspace status for audio-first writing systems/i }),
+      "Excluded"
+    );
+
+    expect(onUpdateStatus).toHaveBeenCalledWith("paper-1", "Excluded");
+
+    await user.type(
+      screen.getByRole("textbox", { name: /exclusion reason/i }),
+      "Outside dissertation scope"
+    );
+    expect(onUpdateExclusionReason).toHaveBeenLastCalledWith(
+      "paper-1",
+      "Outside dissertation scope"
     );
   });
 });

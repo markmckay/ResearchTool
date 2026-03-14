@@ -9,6 +9,7 @@ import {
   PaperTitleButton,
 } from "@/components/PaperResultShared";
 import type { Paper } from "@/types/paper";
+import type { WorkspaceStatus } from "@/types/workspace";
 
 interface Props {
   paper: Paper;
@@ -19,6 +20,7 @@ interface Props {
   onReadTitle: (paper: Paper) => void;
   onReadAloud: (paper: Paper) => void;
   onSummarize: (paper: Paper) => void;
+  onQuickWorkspaceAction?: (paper: Paper, status: WorkspaceStatus) => void;
   titleSpeaking: boolean;
   abstractSpeaking: boolean;
 }
@@ -33,6 +35,7 @@ export const CompactPaperRow = forwardRef<HTMLButtonElement, Props>(function Com
     onReadTitle,
     onReadAloud,
     onSummarize,
+    onQuickWorkspaceAction,
     titleSpeaking,
     abstractSpeaking,
   },
@@ -84,6 +87,7 @@ export const CompactPaperRow = forwardRef<HTMLButtonElement, Props>(function Com
             paper={paper}
             onReadAloud={onReadAloud}
             onSummarize={onSummarize}
+            onQuickWorkspaceAction={onQuickWorkspaceAction}
             abstractSpeaking={abstractSpeaking}
             className="flex flex-wrap gap-2 mt-3"
           />

@@ -16,6 +16,7 @@ interface Props {
   onUpdateStatus: (id: string, status: WorkspaceStatus) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
   onUpdateNotes: (id: string, notes: string) => void;
+  onUpdateExclusionReason: (id: string, exclusionReason: string) => void;
 }
 
 export function BookmarkPanel({
@@ -28,7 +29,9 @@ export function BookmarkPanel({
   onUpdateStatus,
   onUpdateTags,
   onUpdateNotes,
+  onUpdateExclusionReason,
 }: Props) {
+  const [activeView, setActiveView] = useState<"all" | "needs-reading" | "priority-untagged">("all");
   const [activeStatuses, setActiveStatuses] = useState<WorkspaceStatus[]>([]);
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
@@ -46,10 +49,17 @@ export function BookmarkPanel({
         activeStatuses.length === 0 || activeStatuses.includes(bookmark.status);
       const matchesTags =
         activeTags.length === 0 || activeTags.every((tag) => bookmark.tags.includes(tag));
+      const matchesView =
+        activeView === "all" ||
+        (activeView === "needs-reading" &&
+          (bookmark.status === "Inbox" || bookmark.status === "Maybe" || bookmark.status === "Priority")) ||
+        (activeView === "priority-untagged" &&
+          bookmark.status === "Priority" &&
+          bookmark.tags.length === 0);
 
-      return matchesStatus && matchesTags;
+      return matchesStatus && matchesTags && matchesView;
     });
-  }, [activeStatuses, activeTags, bookmarks]);
+  }, [activeStatuses, activeTags, activeView, bookmarks]);
 
   const toggleStatus = (status: WorkspaceStatus) => {
     setActiveStatuses((current) =>
@@ -66,6 +76,7 @@ export function BookmarkPanel({
   };
 
   const clearFilters = () => {
+    setActiveView("all");
     setActiveStatuses([]);
     setActiveTags([]);
   };
@@ -134,7 +145,7 @@ export function BookmarkPanel({
                       Narrow by stage and theme as you review the literature.
                     </p>
                   </div>
-                  {(activeStatuses.length > 0 || activeTags.length > 0) && (
+                  {(activeStatuses.length > 0 || activeTags.length > 0 || activeView !== "all") && (
                     <button
                       type="button"
                       onClick={clearFilters}
@@ -143,6 +154,36 @@ export function BookmarkPanel({
                       Clear
                     </button>
                   )}
+                </div>
+
+                <div className="mb-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted mb-2">
+                    Smart views
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: "all", label: "All saved" },
+                      { key: "needs-reading", label: "Needs reading" },
+                      { key: "priority-untagged", label: "Priority + untagged" },
+                    ].map((view) => {
+                      const active = activeView === view.key;
+                      return (
+                        <button
+                          key={view.key}
+                          type="button"
+                          onClick={() => setActiveView(view.key as typeof activeView)}
+                          aria-pressed={active}
+                          className={`text-xs rounded-full border px-3 py-1 transition-all ${
+                            active
+                              ? "border-accent-green/40 bg-accent-green/10 text-accent-green"
+                              : "border-white/10 text-subtle hover:border-white/20 hover:text-foreground"
+                          }`}
+                        >
+                          {view.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="mb-3">
@@ -324,6 +365,25 @@ export function BookmarkPanel({
                           className="w-full min-h-24 resize-y bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted"
                         />
                       </div>
+
+                      {paper.status === "Excluded" && (
+                        <div className="mb-3">
+                          <label
+                            htmlFor={`exclude-${paper.id}`}
+                            className="block text-[11px] font-semibold uppercase tracking-widest text-muted mb-2"
+                          >
+                            Exclusion reason
+                          </label>
+                          <input
+                            id={`exclude-${paper.id}`}
+                            type="text"
+                            value={paper.exclusionReason}
+                            onChange={(event) => onUpdateExclusionReason(paper.id, event.target.value)}
+                            placeholder="Why this was excluded"
+                            className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted"
+                          />
+                        </div>
+                      )}
 
                       <div className="flex gap-2 flex-wrap">
                         <button

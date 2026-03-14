@@ -47,6 +47,7 @@ describe("useBookmarks", () => {
       expect.objectContaining({
         id: "paper-1",
         status: "Inbox",
+        exclusionReason: "",
         tags: ["AI", "notes"],
       }),
     ]);

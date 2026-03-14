@@ -41,6 +41,27 @@ export function useBookmarks() {
     save([...bookmarks, createWorkspacePaper(paper)]);
   };
 
+  const saveWorkspacePaper = (paper: Paper, status: WorkspaceStatus) => {
+    const existing = bookmarks.find((bookmark) => bookmark.id === paper.id);
+    if (!existing) {
+      save([...bookmarks, { ...createWorkspacePaper(paper), status }]);
+      return;
+    }
+
+    save(
+      bookmarks.map((bookmark) =>
+        bookmark.id === paper.id
+          ? {
+              ...bookmark,
+              status,
+              exclusionReason: status === "Excluded" ? bookmark.exclusionReason : "",
+              updatedAt: new Date().toISOString(),
+            }
+          : bookmark
+      )
+    );
+  };
+
   const removeBookmark = (id: string) => {
     save(bookmarks.filter((b) => b.id !== id));
   };
@@ -51,7 +72,12 @@ export function useBookmarks() {
     save(
       bookmarks.map((bookmark) =>
         bookmark.id === id
-          ? { ...bookmark, status, updatedAt: new Date().toISOString() }
+          ? {
+              ...bookmark,
+              status,
+              exclusionReason: status === "Excluded" ? bookmark.exclusionReason : "",
+              updatedAt: new Date().toISOString(),
+            }
           : bookmark
       )
     );
@@ -81,13 +107,25 @@ export function useBookmarks() {
     );
   };
 
+  const updateBookmarkExclusionReason = (id: string, exclusionReason: string) => {
+    save(
+      bookmarks.map((bookmark) =>
+        bookmark.id === id
+          ? { ...bookmark, exclusionReason, updatedAt: new Date().toISOString() }
+          : bookmark
+      )
+    );
+  };
+
   return {
     bookmarks,
     addBookmark,
+    saveWorkspacePaper,
     removeBookmark,
     isBookmarked,
     updateBookmarkStatus,
     updateBookmarkTags,
     updateBookmarkNotes,
+    updateBookmarkExclusionReason,
   };
 }

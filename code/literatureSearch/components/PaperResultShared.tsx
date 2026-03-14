@@ -3,6 +3,7 @@ import type { ForwardedRef } from "react";
 import {
   Bookmark,
   BookmarkCheck,
+  CircleCheckBig,
   ExternalLink,
   FileText,
   Sparkles,
@@ -10,6 +11,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import type { Paper } from "@/types/paper";
+import type { WorkspaceStatus } from "@/types/workspace";
 
 function getSourceBadgeClass(source: Paper["source"]) {
   if (source === "arXiv") {
@@ -128,6 +130,7 @@ interface PaperActionButtonsProps {
   paper: Paper;
   onReadAloud: (paper: Paper) => void;
   onSummarize: (paper: Paper) => void;
+  onQuickWorkspaceAction?: (paper: Paper, status: WorkspaceStatus) => void;
   abstractSpeaking: boolean;
   className?: string;
 }
@@ -136,6 +139,7 @@ export function PaperActionButtons({
   paper,
   onReadAloud,
   onSummarize,
+  onQuickWorkspaceAction,
   abstractSpeaking,
   className = "flex flex-wrap gap-2",
 }: PaperActionButtonsProps) {
@@ -164,6 +168,36 @@ export function PaperActionButtons({
         <Sparkles className="w-3.5 h-3.5" />
         Summarize
       </button>
+
+      {onQuickWorkspaceAction && (
+        <>
+          <button
+            type="button"
+            onClick={() => onQuickWorkspaceAction(paper, "Priority")}
+            aria-label={`Mark ${paper.title} as priority`}
+            className="flex items-center gap-1.5 text-xs text-amber-300 border border-amber-500/20 hover:bg-amber-500/10 rounded-lg px-3 py-1.5 transition-all"
+          >
+            <CircleCheckBig className="w-3.5 h-3.5" />
+            Priority
+          </button>
+          <button
+            type="button"
+            onClick={() => onQuickWorkspaceAction(paper, "Maybe")}
+            aria-label={`Mark ${paper.title} as maybe`}
+            className="text-xs text-subtle border border-white/10 hover:border-white/20 hover:text-foreground rounded-lg px-3 py-1.5 transition-all"
+          >
+            Maybe
+          </button>
+          <button
+            type="button"
+            onClick={() => onQuickWorkspaceAction(paper, "Excluded")}
+            aria-label={`Exclude ${paper.title}`}
+            className="text-xs text-red-300 border border-red-500/20 hover:bg-red-500/10 rounded-lg px-3 py-1.5 transition-all"
+          >
+            Exclude
+          </button>
+        </>
+      )}
 
       {paper.pdfUrl && (
         <a

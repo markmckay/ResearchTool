@@ -26,6 +26,7 @@ describe("workspace helpers", () => {
     expect(created).toMatchObject({
       ...paper,
       status: "Inbox",
+      exclusionReason: "",
       tags: [],
       notes: "",
     });
@@ -42,6 +43,7 @@ describe("workspace helpers", () => {
     expect(migrated).toMatchObject({
       ...paper,
       status: "Inbox",
+      exclusionReason: "",
       tags: ["AI", "machine learning"],
     });
   });

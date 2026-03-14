@@ -16,6 +16,7 @@ export function createWorkspacePaper(paper: Paper): WorkspacePaper {
   return {
     ...paper,
     status: DEFAULT_STATUS,
+    exclusionReason: "",
     tags: [],
     notes: "",
     savedAt: timestamp,
@@ -59,6 +60,7 @@ export function migrateWorkspacePaper(value: unknown): WorkspacePaper | null {
   return {
     ...paper,
     status,
+    exclusionReason: typeof candidate.exclusionReason === "string" ? candidate.exclusionReason : "",
     tags: Array.isArray(candidate.tags)
       ? normalizeTags(candidate.tags.filter((tag): tag is string => typeof tag === "string"))
       : [],
