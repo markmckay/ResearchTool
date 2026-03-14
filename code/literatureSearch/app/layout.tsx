@@ -27,9 +27,17 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const buildId = process.env.NEXT_PUBLIC_BUILD_ID ?? "dev";
+
   return (
     <html lang="en" className={`${headingFont.variable} ${bodyFont.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <div className="fixed bottom-3 right-3 z-50 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[11px] text-muted backdrop-blur-sm">
+          <span className="sr-only">Current build </span>
+          Build {buildId}
+        </div>
+      </body>
     </html>
   );
 }
