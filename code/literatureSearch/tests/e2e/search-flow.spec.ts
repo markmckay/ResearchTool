@@ -90,7 +90,8 @@ test("search results load without forcing the page to jump down", async ({ page 
   await page.getByRole("searchbox", { name: /enter your research search query/i }).fill("authorial control AI writing");
   await page.getByRole("button", { name: /search for papers/i }).click();
 
-  await expect(page.getByRole("heading", { name: /2 results · sorted by relevance/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^2 results$/i })).toBeVisible();
+  await expect(page.getByText(/^AI-ranked$/i)).toBeVisible();
 
   const scrollY = await page.evaluate(() => window.scrollY);
   expect(scrollY).toBeLessThan(80);
