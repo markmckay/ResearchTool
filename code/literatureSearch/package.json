@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "clean:artifacts": "rm -rf .next coverage test-results tsconfig.tsbuildinfo",
     "start": "next start",
     "deploy:prod": "./scripts/deploy-production.sh",
     "lint": "next lint --max-warnings=0",

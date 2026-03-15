@@ -34,4 +34,5 @@ From the repo root, `scripts/codex-run.sh` can be used to start the dev server.
 
 - For small changes, run the narrowest useful check.
 - For behavior changes, prefer the most relevant test over running everything by default.
+- After build or test work that generates disposable output, run `npm run clean:artifacts` from `code/literatureSearch` before wrapping up unless those artifacts are still needed for active debugging.
 - If you could not run verification, say so clearly.
