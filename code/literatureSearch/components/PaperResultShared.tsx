@@ -180,6 +180,30 @@ interface PaperActionButtonsProps {
   className?: string;
 }
 
+interface PaperQuickPreviewProps {
+  paper: Paper;
+  relevanceReason?: string;
+}
+
+export function PaperQuickPreview({ paper, relevanceReason }: PaperQuickPreviewProps) {
+  return (
+    <div className="space-y-3">
+      {relevanceReason ? (
+        <section aria-label="Why this matches your search">
+          <p className="text-xs font-medium uppercase tracking-wide text-accent-green mb-1">
+            Why it matches
+          </p>
+          <p className="text-sm text-foreground leading-relaxed">{relevanceReason}</p>
+        </section>
+      ) : null}
+      <section aria-label="Abstract">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted mb-1">Abstract</p>
+        <p className="text-subtle text-sm leading-relaxed">{paper.abstract}</p>
+      </section>
+    </div>
+  );
+}
+
 export function PaperActionButtons({
   paper,
   onReadAloud,

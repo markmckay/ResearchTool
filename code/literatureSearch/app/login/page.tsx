@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AUTH_COOKIE_NAME, isAuthEnabled, isAuthorizedSession } from "@/lib/auth";
@@ -5,7 +6,7 @@ import { AUTH_COOKIE_NAME, isAuthEnabled, isAuthorizedSession } from "@/lib/auth
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   if (!isAuthEnabled()) {
     return (
@@ -24,12 +25,12 @@ export default async function LoginPage({
             <p className="text-subtle text-sm mb-4">
               This environment does not require a login. Go back to the main app to search normally.
             </p>
-            <a
+            <Link
               href="/"
               className="inline-flex bg-accent/85 hover:bg-accent text-background font-bold rounded-xl px-5 py-3 text-sm transition-all"
             >
               Return to search
-            </a>
+            </Link>
           </section>
         </div>
       </main>
@@ -43,8 +44,10 @@ export default async function LoginPage({
     redirect("/");
   }
 
-  const redirectTo = typeof searchParams?.redirect === "string" ? searchParams.redirect : "/";
-  const showError = searchParams?.error === "1";
+  const resolvedSearchParams = await searchParams;
+  const redirectTo =
+    typeof resolvedSearchParams?.redirect === "string" ? resolvedSearchParams.redirect : "/";
+  const showError = resolvedSearchParams?.error === "1";
 
   return (
     <main className="min-h-screen px-4 py-12">

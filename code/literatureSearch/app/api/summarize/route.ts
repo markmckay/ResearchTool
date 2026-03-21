@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { extractConclusionFromPdfUrl } from "@/lib/pdfConclusion";
+
+function stripMarkdownFences(content: string) {
+  return content.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
+}
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -15,19 +20,38 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { title, abstract, authors, year } = await req.json();
+  const { title, abstract, authors, year, pdfUrl } = await req.json();
 
   if (!abstract) {
     return NextResponse.json({ error: "Abstract is required" }, { status: 400 });
   }
 
-  const prompt = `You are helping a PhD researcher with low vision who uses audio-first tools. Summarize this academic paper in plain, clear language that works well when read aloud. Keep it to 3-4 sentences. Focus on: what problem it addresses, what approach it takes, and why it matters.
+  const attemptedPdfExtraction = typeof pdfUrl === "string" && pdfUrl.trim().length > 0;
+  const extractedConclusion = attemptedPdfExtraction
+    ? await extractConclusionFromPdfUrl(pdfUrl)
+    : null;
+
+  const prompt = `You are helping a PhD researcher with low vision who uses audio-first tools.
+
+Return JSON only in this shape:
+{"overview":"2-3 sentences","keyFindings":"2-3 sentences"}
+
+Requirements:
+- The overview should explain the problem, approach, and why the paper matters.
+- The keyFindings field should summarize the paper's conclusion or main findings.
+- If conclusion text is provided below, ground keyFindings in that text.
+- If no conclusion text is provided, infer likely findings from the abstract only.
+- Be explicit and readable when spoken aloud.
+- Do not mention that you are an AI or apologize.
 
 Paper: "${title}" by ${authors} (${year ?? "year unknown"})
 
 Abstract: ${abstract}
 
-Plain language summary:`;
+Conclusion text:
+${extractedConclusion ?? "Not available from PDF extraction."}
+
+Structured summary:`;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -50,6 +74,49 @@ Plain language summary:`;
   }
 
   const data = await response.json();
-  const summary = data.choices?.[0]?.message?.content ?? "Could not generate summary.";
-  return NextResponse.json({ summary });
+  const content = data.choices?.[0]?.message?.content;
+
+  try {
+    const parsed = JSON.parse(stripMarkdownFences(content ?? ""));
+    const overview = typeof parsed?.overview === "string" ? parsed.overview.trim() : "";
+    const keyFindings =
+      typeof parsed?.keyFindings === "string" ? parsed.keyFindings.trim() : "";
+
+    if (!overview || !keyFindings) {
+      throw new Error("Invalid structured summary payload");
+    }
+
+    return NextResponse.json({
+      summary: {
+        overview,
+        keyFindings,
+        keyFindingsSource: extractedConclusion ? "pdf" : "abstract",
+        pdfExtractionStatus: attemptedPdfExtraction
+          ? extractedConclusion
+            ? "success"
+            : "failed"
+          : "not_attempted",
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        summary: {
+          overview:
+            typeof content === "string" && content.trim().length > 0
+              ? content.trim()
+              : "Could not generate summary.",
+          keyFindings: extractedConclusion
+            ? extractedConclusion
+            : "Likely conclusions were not available in a structured format.",
+          keyFindingsSource: extractedConclusion ? "pdf" : attemptedPdfExtraction ? "abstract" : "unavailable",
+          pdfExtractionStatus: attemptedPdfExtraction
+            ? extractedConclusion
+              ? "success"
+              : "failed"
+            : "not_attempted",
+        },
+      }
+    );
+  }
 }

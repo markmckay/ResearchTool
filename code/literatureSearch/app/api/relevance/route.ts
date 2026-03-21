@@ -13,37 +13,28 @@ interface ScoredPaper extends PaperInput {
   reason: string;
 }
 
-const RESEARCH_CONTEXT = `Research question: How can audio-first, AI-mediated academic writing workflows be designed to reduce cognitive load while preserving authorial control for people with low vision?
-
-Key constructs:
-
-- Authorial control: the degree to which a writer retains intentional agency over content, structure, and argument direction when delegating sub-tasks to AI
-- Low vision: visual impairment not correctable with standard eyewear, affecting acuity, contrast, or visual field
-- Cognitive load: mental effort imposed by the interaction design of a writing tool
-- Audio-first interaction: systems designed primarily for speech input and text-to-speech output
-- AI-mediated writing: using AI assistance for sub-tasks while the human retains authorial control
-
-Relevant domains: HCI, assistive technology, accessible writing tools, speech interfaces, academic writing support, disability and higher education.
-
-Scoring guide:
-
-- 5 = Directly addresses the research question or a key construct
-- 4 = Closely related, likely useful for background or methods
-- 3 = Tangentially related, worth skimming
-- 2 = Peripheral, probably not worth reading
-- 1 = Not relevant`;
-
 function stripMarkdownFences(content: string) {
   return content.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
 }
 
-function getPrompt(paper: PaperInput) {
+function getPrompt(paper: PaperInput, query: string) {
   return `You are scoring academic search results for a PhD researcher.
 
-${RESEARCH_CONTEXT}
+Score this paper against the user's live search query, not general topic quality.
+
+User search query: ${query}
+
+Scoring guide:
+- 5 = Direct match for the search query
+- 4 = Strong match, likely useful
+- 3 = Partial match, worth skimming
+- 2 = Weak match
+- 1 = Not meaningfully related
 
 Return JSON only in this shape:
 {"score":1,"reason":"one sentence"}
+
+The reason must explain how the title and abstract relate to the query in plain language.
 
 Paper:
 Title: ${paper.title}
@@ -52,7 +43,12 @@ Year: ${paper.year ?? "Unknown"}
 Abstract: ${paper.abstract ?? "No abstract available"}`;
 }
 
-async function scorePaper(paper: PaperInput, apiKey: string, model: string): Promise<ScoredPaper> {
+async function scorePaper(
+  paper: PaperInput,
+  query: string,
+  apiKey: string,
+  model: string
+): Promise<ScoredPaper> {
   if (!paper.abstract || paper.abstract.trim().length < 30) {
     return { ...paper, score: 0, reason: "No abstract available" };
   }
@@ -67,7 +63,7 @@ async function scorePaper(paper: PaperInput, apiKey: string, model: string): Pro
       body: JSON.stringify({
         model,
         max_tokens: 100,
-        messages: [{ role: "user", content: getPrompt(paper) }],
+        messages: [{ role: "user", content: getPrompt(paper, query) }],
       }),
     });
 
@@ -105,13 +101,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { papers } = (await req.json()) as { papers?: PaperInput[] };
+  const { papers, query } = (await req.json()) as { papers?: PaperInput[]; query?: string };
 
   if (!Array.isArray(papers)) {
     return NextResponse.json({ error: "Papers are required" }, { status: 400 });
   }
 
-  const scored = await Promise.all(papers.map((paper) => scorePaper(paper, apiKey, model)));
+  if (typeof query !== "string" || query.trim().length === 0) {
+    return NextResponse.json({ error: "Query is required" }, { status: 400 });
+  }
+
+  const scored = await Promise.all(
+    papers.map((paper) => scorePaper(paper, query, apiKey, model))
+  );
   scored.sort((a, b) => b.score - a.score);
 
   return NextResponse.json({ papers: scored });

@@ -1,10 +1,10 @@
 "use client";
 import { X, Volume2, Sparkles } from "lucide-react";
-import type { Paper } from "@/types/paper";
+import type { Paper, PaperSummary } from "@/types/paper";
 
 interface Props {
   paper: Paper | null;
-  summary: string | null;
+  summary: PaperSummary | null;
   loading: boolean;
   error: string | null;
   notConfigured: boolean;
@@ -83,14 +83,69 @@ export function SummaryDialog({
 
             {summary && !loading && (
               <>
-                <p
-                  aria-live="polite"
-                  className="text-foreground text-base leading-relaxed mb-4"
-                >
-                  {summary}
-                </p>
+                {summary.pdfExtractionStatus === "failed" ? (
+                  <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
+                    <p className="text-amber-300 text-sm">
+                      PDF conclusion extraction failed for this paper. The conclusion below is inferred from the abstract.
+                    </p>
+                  </div>
+                ) : null}
+                {paper.relevanceReason ? (
+                  <section className="mb-4" aria-label="Why this matches your search">
+                    <p className="text-xs font-medium uppercase tracking-wide text-accent-green mb-1">
+                      Why it matches
+                    </p>
+                    <p className="text-subtle text-sm leading-relaxed">{paper.relevanceReason}</p>
+                  </section>
+                ) : null}
+                <section className="mb-4" aria-label="Abstract">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted mb-1">
+                    Abstract
+                  </p>
+                  <p className="text-subtle text-sm leading-relaxed">{paper.abstract}</p>
+                </section>
+                <section className="mb-4" aria-label="Plain language overview">
+                  <p className="text-xs font-medium uppercase tracking-wide text-accent mb-1">
+                    Overview
+                  </p>
+                  <p
+                    aria-live="polite"
+                    className="text-foreground text-base leading-relaxed"
+                  >
+                    {summary.overview}
+                  </p>
+                </section>
+                <section className="mb-4" aria-label="AI generated likely conclusion">
+                  <p className="text-xs font-medium uppercase tracking-wide text-accent-green mb-1">
+                    {summary.keyFindingsSource === "pdf"
+                      ? "PDF-grounded conclusion"
+                      : summary.keyFindingsSource === "unavailable"
+                      ? "Conclusion unavailable"
+                      : "AI-generated likely conclusion"}
+                  </p>
+                  <p className="text-foreground text-base leading-relaxed">
+                    {summary.keyFindings}
+                  </p>
+                </section>
                 <button
-                  onClick={() => onReadAloud(summary)}
+                  onClick={() =>
+                    onReadAloud(
+                      [
+                        paper.relevanceReason ? `Why it matches: ${paper.relevanceReason}` : null,
+                        `Abstract: ${paper.abstract}`,
+                        `Overview: ${summary.overview}`,
+                        `${
+                          summary.keyFindingsSource === "pdf"
+                            ? "PDF-grounded conclusion"
+                            : summary.keyFindingsSource === "unavailable"
+                            ? "Conclusion unavailable"
+                            : "AI-generated likely conclusion"
+                        }: ${summary.keyFindings}`,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")
+                    )
+                  }
                   className="flex items-center gap-2 text-sm text-accent border border-accent/20 hover:bg-accent/10 rounded-lg px-4 py-2 transition-all"
                   aria-label="Read summary aloud"
                 >

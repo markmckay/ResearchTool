@@ -12,3 +12,10 @@ export interface Paper {
   pdfUrl: string | null;
   doi: string | null;
 }
+
+export interface PaperSummary {
+  overview: string;
+  keyFindings: string;
+  keyFindingsSource: "pdf" | "abstract" | "unavailable";
+  pdfExtractionStatus?: "not_attempted" | "success" | "failed";
+}

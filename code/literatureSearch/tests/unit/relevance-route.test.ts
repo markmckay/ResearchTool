@@ -31,6 +31,7 @@ describe("relevance route", () => {
   it("returns notConfigured when OpenRouter settings are missing", async () => {
     const response = await POST(
       createRequest({
+        query: "audio tools",
         papers: [{ id: "paper-1", title: "Audio tools", abstract: "This abstract is long enough to score." }],
       })
     );
@@ -49,6 +50,7 @@ describe("relevance route", () => {
 
     const response = await POST(
       createRequest({
+        query: "audio tools",
         papers: [{ id: "paper-1", title: "Audio tools", abstract: "Too short" }],
       })
     );
@@ -80,6 +82,7 @@ describe("relevance route", () => {
 
     const response = await POST(
       createRequest({
+        query: "audio-first writing",
         papers: [
           {
             id: "paper-1",
@@ -128,6 +131,7 @@ describe("relevance route", () => {
 
     const response = await POST(
       createRequest({
+        query: "audio-first writing",
         papers: [
           {
             id: "paper-1",
@@ -155,5 +159,19 @@ describe("relevance route", () => {
         },
       ],
     });
+  });
+
+  it("requires a query for relevance scoring", async () => {
+    process.env.OPENROUTER_API_KEY = "key";
+    process.env.OPENROUTER_MODEL = "openrouter/test-model";
+
+    const response = await POST(
+      createRequest({
+        papers: [{ id: "paper-1", title: "Audio tools", abstract: "This abstract is long enough to score." }],
+      })
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Query is required" });
   });
 });

@@ -6,6 +6,7 @@ import {
   PaperActionButtons,
   PaperBadges,
   PaperMeta,
+  PaperQuickPreview,
   PaperRelevanceBadge,
   PaperTitleButton,
 } from "@/components/PaperResultShared";
@@ -98,13 +99,9 @@ export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard
 
       {/* Abstract */}
       <div className="mt-4">
-        <p
-          className={`text-subtle text-sm leading-relaxed mb-3 ${
-            expanded ? "" : "line-clamp-3"
-          }`}
-        >
-          {paper.abstract}
-        </p>
+        <div className={expanded ? "mb-3" : "line-clamp-3 mb-3"}>
+          <PaperQuickPreview paper={paper} relevanceReason={relevanceReason} />
+        </div>
       </div>
 
       {/* Actions */}

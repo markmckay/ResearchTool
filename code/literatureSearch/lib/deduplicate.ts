@@ -39,8 +39,8 @@ function scorePaper(paper: Paper, query: string) {
   }
 
   for (const term of queryTerms) {
-    if (title.includes(term)) score += 28;
-    if (abstract.includes(term)) score += 9;
+    if (title.includes(term)) score += 32;
+    if (abstract.includes(term)) score += 12;
     if (venue.includes(term)) score += 5;
     if (authors.includes(term)) score += 3;
   }
@@ -52,7 +52,7 @@ function scorePaper(paper: Paper, query: string) {
     score -= 8;
   }
 
-  score += Math.log10((paper.citations ?? 0) + 1) * 6;
+  score += Math.log10((paper.citations ?? 0) + 1) * 2;
 
   return score;
 }

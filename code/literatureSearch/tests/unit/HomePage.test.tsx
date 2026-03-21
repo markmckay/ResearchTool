@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Home from "@/app/page";
-import type { Paper } from "@/types/paper";
+import type { Paper, PaperSummary } from "@/types/paper";
 
 const mockUseBookmarks = vi.fn();
 const mockUseSpeech = vi.fn();
@@ -87,14 +87,14 @@ vi.mock("@/components/SummaryDialog", () => ({
     notConfigured,
   }: {
     paper: Paper | null;
-    summary: string | null;
+    summary: PaperSummary | null;
     loading: boolean;
     error: string | null;
     notConfigured: boolean;
   }) => (
     <div data-testid="summary-dialog">
       <span>{paper?.title ?? "none"}</span>
-      <span>{summary ?? "no-summary"}</span>
+      <span>{summary ? `${summary.overview} ${summary.keyFindings}` : "no-summary"}</span>
       <span>{loading ? "loading" : "idle"}</span>
       <span>{error ?? "no-error"}</span>
       <span>{notConfigured ? "not-configured" : "configured"}</span>
@@ -248,7 +248,14 @@ describe("Home page", () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ summary: "Helpful summary." }),
+        json: async () => ({
+          summary: {
+            overview: "Helpful summary.",
+            keyFindings: "The paper likely concludes the workflow improves triage.",
+            keyFindingsSource: "abstract",
+            pdfExtractionStatus: "not_attempted",
+          },
+        }),
       })
       .mockResolvedValueOnce({
         ok: false,

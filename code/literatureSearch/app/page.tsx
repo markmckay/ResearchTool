@@ -9,7 +9,7 @@ import { SummaryDialog } from "@/components/SummaryDialog";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import { useSpeech } from "@/hooks/useSpeech";
 import { exportBookmarksToDocx } from "@/lib/exportDocx";
-import type { Paper } from "@/types/paper";
+import type { Paper, PaperSummary } from "@/types/paper";
 import type { WorkspaceStatus } from "@/types/workspace";
 
 export default function Home() {
@@ -29,7 +29,7 @@ export default function Home() {
 
   // Summary state
   const [summaryPaper, setSummaryPaper] = useState<Paper | null>(null);
-  const [summary, setSummary] = useState<string | null>(null);
+  const [summary, setSummary] = useState<PaperSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryNotConfigured, setSummaryNotConfigured] = useState(false);
@@ -83,7 +83,7 @@ export default function Home() {
       .map(({ paper }) => paper);
   }, [relevanceApplied, relevanceFilter, results, sortMode]);
 
-  const scoreResultsByRelevance = async (papers: Paper[], requestId: number) => {
+  const scoreResultsByRelevance = async (papers: Paper[], query: string, requestId: number) => {
     if (papers.length === 0) {
       return;
     }
@@ -96,6 +96,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          query,
           papers: papers.map((paper) => ({
             id: paper.id,
             title: paper.title,
@@ -172,7 +173,7 @@ export default function Home() {
       const nextResults = data.results ?? [];
       setResults(nextResults);
       setActiveSources(data.sources ?? {});
-      void scoreResultsByRelevance(nextResults, requestId);
+      void scoreResultsByRelevance(nextResults, query, requestId);
     } catch (error) {
       setError(
         error instanceof Error
@@ -225,6 +226,7 @@ export default function Home() {
           abstract: paper.abstract,
           authors: paper.authors,
           year: paper.year,
+          pdfUrl: paper.pdfUrl,
         }),
       });
       const data = await res.json();
@@ -233,7 +235,7 @@ export default function Home() {
       } else if (!res.ok) {
         setSummaryError(data.error ?? "Summarization failed.");
       } else {
-        setSummary(data.summary);
+        setSummary(data.summary ?? null);
       }
     } catch {
       setSummaryError("Could not connect to summarization service.");
