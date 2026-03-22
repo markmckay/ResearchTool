@@ -27,6 +27,8 @@ interface Props {
   abstractSpeaking: boolean;
   relevanceScore?: number;
   relevanceReason?: string;
+  hasSummary?: boolean;
+  summaryOpen?: boolean;
 }
 
 export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard({
@@ -43,6 +45,8 @@ export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard
   abstractSpeaking,
   relevanceScore,
   relevanceReason,
+  hasSummary,
+  summaryOpen,
 }, titleButtonRef) {
   const [expanded, setExpanded] = useState(false);
   const titleId = `paper-title-${index}`;
@@ -121,6 +125,8 @@ export const PaperCard = forwardRef<HTMLButtonElement, Props>(function PaperCard
           onSummarize={onSummarize}
           onQuickWorkspaceAction={onQuickWorkspaceAction}
           abstractSpeaking={abstractSpeaking}
+          hasSummary={hasSummary}
+          summaryOpen={summaryOpen}
         />
       </div>
     </article>

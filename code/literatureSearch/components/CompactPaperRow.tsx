@@ -27,6 +27,8 @@ interface Props {
   abstractSpeaking: boolean;
   relevanceScore?: number;
   relevanceReason?: string;
+  hasSummary?: boolean;
+  summaryOpen?: boolean;
 }
 
 export const CompactPaperRow = forwardRef<HTMLButtonElement, Props>(function CompactPaperRow(
@@ -44,6 +46,8 @@ export const CompactPaperRow = forwardRef<HTMLButtonElement, Props>(function Com
     abstractSpeaking,
     relevanceScore,
     relevanceReason,
+    hasSummary,
+    summaryOpen,
   },
   titleButtonRef
 ) {
@@ -98,6 +102,8 @@ export const CompactPaperRow = forwardRef<HTMLButtonElement, Props>(function Com
             onSummarize={onSummarize}
             onQuickWorkspaceAction={onQuickWorkspaceAction}
             abstractSpeaking={abstractSpeaking}
+            hasSummary={hasSummary}
+            summaryOpen={summaryOpen}
             className="flex flex-wrap gap-2 mt-3"
           />
         </div>

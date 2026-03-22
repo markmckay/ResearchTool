@@ -21,11 +21,13 @@ vi.mock("@/lib/exportDocx", () => ({
 }));
 
 vi.mock("@/components/PaperCard", () => ({
-  PaperCard: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction, relevanceScore, relevanceReason }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void; relevanceScore?: number; relevanceReason?: string }) => (
+  PaperCard: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction, relevanceScore, relevanceReason, hasSummary, summaryOpen }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void; relevanceScore?: number; relevanceReason?: string; hasSummary?: boolean; summaryOpen?: boolean }) => (
     <div data-testid={`card-${paper.id}`}>
       <span>{paper.title}</span>
       <span>{relevanceScore ? `Relevance: ${relevanceScore}/5` : "No relevance"}</span>
       <span>{relevanceReason ?? "No reason"}</span>
+      <span>{hasSummary ? "Has summary" : "No summary"}</span>
+      <span>{summaryOpen ? "Summary open" : "Summary closed"}</span>
       <button type="button" onClick={() => onReadTitle(paper)}>
         Title action {paper.id}
       </button>
@@ -40,11 +42,13 @@ vi.mock("@/components/PaperCard", () => ({
 }));
 
 vi.mock("@/components/CompactPaperRow", () => ({
-  CompactPaperRow: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction, relevanceScore, relevanceReason }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void; relevanceScore?: number; relevanceReason?: string }) => (
+  CompactPaperRow: ({ paper, onSummarize, onReadTitle, onQuickWorkspaceAction, relevanceScore, relevanceReason, hasSummary, summaryOpen }: { paper: Paper; onSummarize: (paper: Paper) => void; onReadTitle: (paper: Paper) => void; onQuickWorkspaceAction?: (paper: Paper, status: "Priority" | "Maybe" | "Excluded") => void; relevanceScore?: number; relevanceReason?: string; hasSummary?: boolean; summaryOpen?: boolean }) => (
     <div data-testid={`row-${paper.id}`}>
       <span>{paper.title}</span>
       <span>{relevanceScore ? `Relevance: ${relevanceScore}/5` : "No relevance"}</span>
       <span>{relevanceReason ?? "No reason"}</span>
+      <span>{hasSummary ? "Has summary" : "No summary"}</span>
+      <span>{summaryOpen ? "Summary open" : "Summary closed"}</span>
       <button type="button" onClick={() => onReadTitle(paper)}>
         Title action {paper.id}
       </button>
@@ -275,11 +279,65 @@ describe("Home page", () => {
     await waitFor(() => {
       expect(screen.getByTestId("summary-dialog")).toHaveTextContent("Helpful summary.");
     });
+    expect(screen.getByTestId("row-paper-1")).toHaveTextContent("Has summary");
+    expect(screen.getByTestId("row-paper-1")).toHaveTextContent("Summary open");
 
     await user.click(screen.getByRole("button", { name: /summarize paper-2/i }));
     await waitFor(() => {
       expect(screen.getByTestId("summary-dialog")).toHaveTextContent("not-configured");
     });
+  });
+
+  it("reuses cached summaries for the same paper instead of fetching twice", async () => {
+    const user = userEvent.setup();
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          results,
+          sources: {
+            semanticScholar: true,
+            openAlex: true,
+            arxiv: false,
+            ieee: false,
+            ieeeConfigured: false,
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ notConfigured: true, papers: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          summary: {
+            overview: "Helpful summary.",
+            keyFindings: "Cached findings.",
+            keyFindingsSource: "abstract",
+            pdfExtractionStatus: "not_attempted",
+          },
+        }),
+      });
+
+    render(<Home />);
+
+    await user.type(screen.getByRole("searchbox", { name: /enter your research search query/i }), "audio research");
+    await user.click(screen.getByRole("button", { name: /search for papers/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("row-paper-1")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /summarize paper-1/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("summary-dialog")).toHaveTextContent("Cached findings.");
+    });
+
+    await user.click(screen.getByRole("button", { name: /summarize paper-1/i }));
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(screen.getByTestId("row-paper-1")).toHaveTextContent("Has summary");
   });
 
   it("exports bookmarks only when there are saved papers", async () => {

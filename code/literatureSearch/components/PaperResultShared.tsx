@@ -177,6 +177,8 @@ interface PaperActionButtonsProps {
   onSummarize: (paper: Paper) => void;
   onQuickWorkspaceAction?: (paper: Paper, status: WorkspaceStatus) => void;
   abstractSpeaking: boolean;
+  hasSummary?: boolean;
+  summaryOpen?: boolean;
   className?: string;
 }
 
@@ -210,6 +212,8 @@ export function PaperActionButtons({
   onSummarize,
   onQuickWorkspaceAction,
   abstractSpeaking,
+  hasSummary = false,
+  summaryOpen = false,
   className = "flex flex-wrap gap-2",
 }: PaperActionButtonsProps) {
   return (
@@ -231,11 +235,17 @@ export function PaperActionButtons({
       <button
         type="button"
         onClick={() => onSummarize(paper)}
-        aria-label={`Get plain language summary of ${paper.title}`}
+        aria-label={
+          summaryOpen
+            ? `Reopen quick view for ${paper.title}`
+            : hasSummary
+            ? `Open saved quick view for ${paper.title}`
+            : `Get plain language summary of ${paper.title}`
+        }
         className="flex items-center gap-1.5 text-xs text-accent-green border border-accent-green/20 hover:bg-accent-green/10 rounded-lg px-3 py-1.5 transition-all"
       >
         <Sparkles className="w-3.5 h-3.5" />
-        Summarize
+        {summaryOpen ? "Quick view open" : hasSummary ? "Open quick view" : "Summarize"}
       </button>
 
       {onQuickWorkspaceAction && (

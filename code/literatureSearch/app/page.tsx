@@ -33,6 +33,7 @@ export default function Home() {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryNotConfigured, setSummaryNotConfigured] = useState(false);
+  const [summaryCache, setSummaryCache] = useState<Record<string, PaperSummary>>({});
 
   const {
     bookmarks,
@@ -212,9 +213,17 @@ export default function Home() {
 
   const handleSummarize = async (paper: Paper) => {
     setSummaryPaper(paper);
-    setSummary(null);
     setSummaryError(null);
     setSummaryNotConfigured(false);
+
+    const cachedSummary = summaryCache[paper.id];
+    if (cachedSummary) {
+      setSummary(cachedSummary);
+      setSummaryLoading(false);
+      return;
+    }
+
+    setSummary(null);
     setSummaryLoading(true);
 
     try {
@@ -235,7 +244,14 @@ export default function Home() {
       } else if (!res.ok) {
         setSummaryError(data.error ?? "Summarization failed.");
       } else {
-        setSummary(data.summary ?? null);
+        const nextSummary = data.summary ?? null;
+        setSummary(nextSummary);
+        if (nextSummary) {
+          setSummaryCache((current) => ({
+            ...current,
+            [paper.id]: nextSummary,
+          }));
+        }
       }
     } catch {
       setSummaryError("Could not connect to summarization service.");
@@ -521,6 +537,8 @@ export default function Home() {
                         onQuickWorkspaceAction={handleQuickWorkspaceAction}
                         titleSpeaking={isSpeakingKey(`title:${paper.id}`)}
                         abstractSpeaking={isSpeakingKey(`abstract:${paper.id}`)}
+                        hasSummary={Boolean(summaryCache[paper.id])}
+                        summaryOpen={summaryPaper?.id === paper.id && Boolean(summary)}
                       />
                     ) : (
                       <PaperCard
@@ -537,6 +555,8 @@ export default function Home() {
                         onQuickWorkspaceAction={handleQuickWorkspaceAction}
                         titleSpeaking={isSpeakingKey(`title:${paper.id}`)}
                         abstractSpeaking={isSpeakingKey(`abstract:${paper.id}`)}
+                        hasSummary={Boolean(summaryCache[paper.id])}
+                        summaryOpen={summaryPaper?.id === paper.id && Boolean(summary)}
                       />
                     )}
                   </li>
